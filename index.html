@@ -81,8 +81,18 @@
             width: 100%;
             padding: 12px;
             font-size: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
+        .btn-secondary {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            margin-bottom: 20px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+        .btn-secondary:hover { color: var(--text); border-color: var(--accent); }
         ol {
             list-style: none;
             counter-reset: step;
@@ -129,7 +139,10 @@
         <h1>Chaturbate for CloudStream 3</h1>
         <p class="sub">Live cams (Girls / Guys / Trans) — bridge to the Chaturbate Stremio addon server.</p>
 
-        <button class="btn-full" id="installBtn">Copy repository URL</button>
+        <a id="installBtn" class="btn-full" style="display:block;text-align:center;text-decoration:none;color:#fff;background:var(--accent);border-radius:8px;font-weight:600;transition:background .15s" href="cloudstreamrepo://rhoulou.github.io/cloudstream/repo.json">
+            Install in CloudStream
+        </a>
+        <button class="btn-secondary" id="copyBtn">Copy repository URL</button>
         <div class="url-box">
             <code id="repoUrl">https://rhoulou.github.io/cloudstream/repo.json</code>
         </div>
@@ -137,21 +150,20 @@
         <ol>
             <li>
                 <p>
-                    Install <b>CloudStream 3</b> from the
-                    <a href="https://github.com/recloudstream/cloudstream/releases" style="color:var(--accent-hover)">official GitHub releases</a>
-                    <small>Android 7.0+ required</small>
+                    Tap <b>Install in CloudStream</b> on your Android phone.
+                    <small>CloudStream 3 opens and the Chaturbate repository is added automatically &mdash; confirm when prompted.</small>
                 </p>
             </li>
             <li>
                 <p>
-                    Open CloudStream 3, go to <b>Settings &rarr; Extensions &rarr; Add repository</b>
-                    <small>If prompted, allow installing from this source.</small>
+                    In the dialog, tap <b>Open repository</b> and install the Chaturbate providers (Girls / Guys / Trans).
+                    <small>Don't have CloudStream 3 yet? Grab it from the <a href="https://github.com/recloudstream/cloudstream/releases" style="color:var(--accent-hover)">official releases</a>, then come back here.</small>
                 </p>
             </li>
             <li>
                 <p>
-                    Paste the repository URL and confirm.
-                    <small>The Chaturbate providers (Girls / Guys / Trans) appear under Extensions.</small>
+                    Done! Find Chaturbate under <b>Extensions</b> on the home screen.
+                    <small>Not on Android? Use the <b>Copy repository URL</b> button and paste it in Settings &rarr; Extensions &rarr; Add repository.</small>
                 </p>
             </li>
         </ol>
@@ -167,7 +179,7 @@
     </div>
 
     <script>
-        const btn = document.getElementById('installBtn');
+        const btn = document.getElementById('copyBtn');
         const url = document.getElementById('repoUrl').textContent.trim();
         btn.addEventListener('click', async () => {
             try {
