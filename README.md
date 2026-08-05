@@ -65,12 +65,16 @@ Pages.)
 
 ### Cam4
 
-- **Homepage**: rows mirroring the site tabs — Female and Couples (the Male and
-  Transgender tabs are skipped). Listing uses the GraphQL endpoint
+- **Homepage**: female-only category rows — New, Teen, MILF, Babe, Mature,
+  Petite, Skinny, BBW, Asian, Black/Ebony, Latina/Hispanic and White (Couples,
+  Male and Transgender tabs are skipped). Listing uses the GraphQL endpoint
   (`/graph?operation=getGenderPreferencePageData`) with the
   `apollographql-client-name: CAM4-client` header, filtered server-side by
-  `gender` and paged with `cursor: { first: 200, offset }`. Each item already
-  carries the live HLS master (`preview.src`) and poster (`profileImageURL`).
+  `gender` (female) plus a category `filters` slug per row, and paged with
+  `cursor: { first: 200, offset }`. Each item already carries the live HLS
+  master (`preview.src`) and poster (`profileImageURL`). Only the compound
+  filter slugs the API honours are used (e.g. `petite-female-body`,
+  `bbw-female-body`, `black`, `hispanic`).
 - **Search**: the directory endpoint (`/api/directoryCams`) with a `search=`
   param (returns a bare JSON array).
 - **Detail / playback**: single-user directory lookup
@@ -119,8 +123,8 @@ StripchatProvider/         Stripchat plugin (.cs3)
 Cam4Provider/              Cam4 plugin (.cs3)
   build.gradle.kts         Plugin metadata
   src/main/kotlin/com/example/cam4/
-    Cam4Provider.kt           Direct-scrape provider (directory + streamInfo)
-    Cam4ProviderPlugin.kt     Registers the provider (All / Female / Couples)
+    Cam4Provider.kt           Direct-scrape provider (GraphQL categories + directory)
+    Cam4ProviderPlugin.kt     Registers the provider (female category rows)
 ```
 
 ## Notes

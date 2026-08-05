@@ -1,9 +1,9 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 2
+version = 3
 
 cloudstream {
     language = "en"
-    description = "Live Cam4 cams. Scrapes cam4.com directly from the phone - directory + streamInfo logic, xcdnpro HLS master passed to the player."
+    description = "Live Cam4 cams. Scrapes cam4.com directly from the phone - GraphQL female category rows (New/Teen/MILF/Babe/Mature/Petite/Skinny/BBW/Asian/Black-Ebony/Latina-Hispanic/White), directory + streamInfo logic, xcdnpro HLS master passed to the player."
     authors = listOf("rhoulou")
 
     /**

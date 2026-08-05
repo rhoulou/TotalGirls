@@ -6,8 +6,9 @@ import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 @CloudstreamPlugin
 class Cam4ProviderPlugin : BasePlugin() {
     override fun load() {
-        // Single provider mirroring the cam4.com tabs
-        // (All / Female / Couples - trans and male rows are skipped).
+        // Single provider mirroring the cam4.com female category rows
+        // (New / Teen / MILF / Babe / Mature / Petite / Skinny / BBW /
+        // Asian / Black-Ebony / Latina-Hispanic / White).
         registerMainAPI(Cam4Provider())
     }
 }

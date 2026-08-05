@@ -23,7 +23,8 @@ import java.net.URLEncoder
  *   * Room list -> POST https://www.cam4.com/graph?operation=
  *                  getGenderPreferencePageData&ssr=false (GraphQL, header
  *                  `apollographql-client-name: CAM4-client`). Filters by
- *                  `gender` server-side (female | couple) and pages with
+ *                  `gender` server-side (female only) plus a category `filters`
+ *                  slug per home row, and pages with
  *                  `cursor: { first: 200, offset }`. Each item already carries
  *                  the live HLS master (`preview.src`) and poster
  *                  (`profileImageURL`).
@@ -34,6 +35,11 @@ import java.net.URLEncoder
  *                  variant and segments all serve 200 to any client, so the
  *                  master is passed straight to the player.
  *   * Metadata  -> same directory username= lookup (poster, viewers, tags).
+ *
+ * Category rows use the server-side GraphQL `filters` slugs (the compound
+ * forms like `petite-female-body` / `bbw-female-body` / `black`; the short
+ * labels like `petite`/`bbw`/`ebony`/`latina` are ignored by the API). HD and
+ * Morocco have no working filter.
  */
 class Cam4Provider : MainAPI() {
     override var mainUrl = "https://www.cam4.com"
@@ -43,21 +49,31 @@ class Cam4Provider : MainAPI() {
     override var vpnStatus = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "female" to "Female",
-        "couple" to "Couples",
+        "new" to "New",
+        "teen" to "Teen",
+        "milf" to "MILF",
+        "babe" to "Babe",
+        "mature" to "Mature",
+        "petite-female-body" to "Petite",
+        "skinny-female-body" to "Skinny",
+        "bbw-female-body" to "BBW",
+        "asian" to "Asian",
+        "black" to "Black / Ebony",
+        "hispanic" to "Latina / Hispanic",
+        "white" to "White",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
         if (page <= 1) {
             val rows = rowSpecs.mapNotNull { spec ->
-                val items = fetchBroadcasts(spec.gender, 0)
+                val items = fetchBroadcasts("female", listOf(spec.filterSlug), 0)
                 if (items.isEmpty()) null
                 else HomePageList(spec.name, items.map { it.toSearchResponse() }, isHorizontalImages = true)
             }
             return newHomePageResponse(rows)
         }
         val spec = rowSpecs.firstOrNull { it.name == request.name } ?: return null
-        val items = fetchBroadcasts(spec.gender, (page - 1) * PAGE_SIZE)
+        val items = fetchBroadcasts("female", listOf(spec.filterSlug), (page - 1) * PAGE_SIZE)
         return newHomePageResponse(
             HomePageList(spec.name, items.map { it.toSearchResponse() }, isHorizontalImages = true),
             hasNext = items.size >= PAGE_SIZE
@@ -112,11 +128,21 @@ class Cam4Provider : MainAPI() {
 
     // ------------------------------------------------------- helpers
 
-    private data class RowSpec(val name: String, val gender: String)
+    private data class RowSpec(val name: String, val filterSlug: String)
 
     private val rowSpecs = listOf(
-        RowSpec("Female", "female"),
-        RowSpec("Couples", "couple"),
+        RowSpec("New", "new"),
+        RowSpec("Teen", "teen"),
+        RowSpec("MILF", "milf"),
+        RowSpec("Babe", "babe"),
+        RowSpec("Mature", "mature"),
+        RowSpec("Petite", "petite-female-body"),
+        RowSpec("Skinny", "skinny-female-body"),
+        RowSpec("BBW", "bbw-female-body"),
+        RowSpec("Asian", "asian"),
+        RowSpec("Black / Ebony", "black"),
+        RowSpec("Latina / Hispanic", "hispanic"),
+        RowSpec("White", "white"),
     )
 
     private fun Item.toSearchResponse(): SearchResponse =
@@ -140,8 +166,8 @@ class Cam4Provider : MainAPI() {
             ?.firstOrNull { it.username.lowercase() == wanted }
     }
 
-    /** GraphQL broadcasts query for one row + offset. */
-    private suspend fun fetchBroadcasts(gender: String, offset: Int): List<Item> {
+    /** GraphQL broadcasts query for one row (filters) + offset. */
+    private suspend fun fetchBroadcasts(gender: String, filters: List<String>, offset: Int): List<Item> {
         val body = JSONObject()
             .put("operationName", "getGenderPreferencePageData")
             .put(
@@ -150,7 +176,7 @@ class Cam4Provider : MainAPI() {
                     "input",
                     JSONObject()
                         .put("orderBy", "trending")
-                        .put("filters", JSONArray())
+                        .put("filters", JSONArray(filters))
                         .put("gender", gender)
                         .put("cursor", JSONObject().put("first", PAGE_SIZE).put("offset", offset))
                 )
