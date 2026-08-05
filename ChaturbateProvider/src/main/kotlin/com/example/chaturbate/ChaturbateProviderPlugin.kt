@@ -1,12 +1,11 @@
 package com.example.chaturbate
 
-import android.content.Context
+import com.lagradost.cloudstream3.plugins.BasePlugin
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
-import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class ChaturbateProviderPlugin : Plugin() {
-    override fun load(context: Context) {
+class ChaturbateProviderPlugin : BasePlugin() {
+    override fun load() {
         // One provider per target, mirroring the original configure page
         // (f = Girls, m = Guys, t = Trans).
         registerMainAPI(ChaturbateProvider("f", "Chaturbate Girls"))

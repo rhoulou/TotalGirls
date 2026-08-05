@@ -7,8 +7,10 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import java.net.URLEncoder
 
 /**
@@ -43,7 +45,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
         manifest.catalogs.forEach { catalog ->
             catalog.toHomePageList(this)?.let { lists.add(it) }
         }
-        return HomePageResponse(lists, false)
+        return newHomePageResponse(lists, hasNext = false)
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
@@ -89,7 +91,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
             val res = tryParseJson<CatalogResponse>(
                 app.get(
                     "${provider.mainUrl}/${provider.gender}/catalog/" +
-                        "${type.encodeUri()}/${id.encodeUri()}.json"
+                        "${type?.encodeUri() ?: ""}/${id.encodeUri()}.json"
                 ).text
             ) ?: return null
             res.metas.forEach { entry -> entries.add(entry.toSearchResponse(provider)) }
@@ -101,7 +103,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
             val res = tryParseJson<CatalogResponse>(
                 app.get(
                     "${provider.mainUrl}/${provider.gender}/catalog/" +
-                        "${type.encodeUri()}/${id.encodeUri()}.json"
+                        "${type?.encodeUri() ?: ""}/${id.encodeUri()}.json"
                 ).text
             ) ?: return emptyList()
             // The addon has no server-side search extra; filter the popular
@@ -130,10 +132,10 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
             provider.newMovieLoadResponse(
                 name,
                 "${provider.mainUrl}/${provider.gender}/meta/" +
-                    "${type.encodeUri()}/${id.encodeUri()}.json",
+                    "${type?.encodeUri() ?: ""}/${id.encodeUri()}.json",
                 TvType.Others,
                 "${provider.mainUrl}/${provider.gender}/stream/" +
-                    "${type.encodeUri()}/${id.encodeUri()}.json"
+                    "${type?.encodeUri() ?: ""}/${id.encodeUri()}.json"
             ) {
                 posterUrl = poster
                 plot = description
@@ -156,14 +158,15 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
                 // Signed HLS chunklist - play directly; referer keeps the
                 // edge CDN happy.
                 callback.invoke(
-                    ExtractorLink(
-                        name ?: "",
-                        title ?: name ?: "",
-                        url,
-                        "https://chaturbate.com/",
-                        Qualities.Unknown.value,
-                        isM3u8 = true
-                    )
+                    newExtractorLink(
+                        source = name ?: "",
+                        name = title ?: name ?: "",
+                        url = url,
+                        type = ExtractorLinkType.M3U8
+                    ) {
+                        referer = "https://chaturbate.com/"
+                        quality = Qualities.Unknown.value
+                    }
                 )
             }
             if (externalUrl != null) {
