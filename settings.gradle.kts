@@ -1,4 +1,5 @@
 rootProject.name = "CloudstreamPlugins"
 
-// Only the Chaturbate provider is built.
+// Chaturbate + Stripchat providers.
 include("ChaturbateProvider")
+include("StripchatProvider")
