@@ -1,0 +1,16 @@
+[
+    {
+        "name": "Chaturbate",
+        "internalName": "ChaturbateProvider",
+        "url": "https://replace-with-your-static-host/ChaturbateProvider.cs3",
+        "status": 1,
+        "version": 1,
+        "apiVersion": 1,
+        "authors": ["you"],
+        "description": "Live Chaturbate cams (Girls/Guys/Trans). Bridge to the Chaturbate Stremio addon server.",
+        "language": "en",
+        "tvTypes": ["Others"],
+        "iconUrl": "https://www.google.com/s2/favicons?domain=chaturbate.com&sz=%size%",
+        "repositoryUrl": "https://github.com/you/cloudstream-chaturbate"
+    }
+]
