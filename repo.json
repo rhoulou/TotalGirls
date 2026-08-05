@@ -3,6 +3,6 @@
     "description": "Chaturbate live cams for CloudStream 3",
     "manifestVersion": 1,
     "pluginLists": [
-        "https://replace-with-your-static-host/plugins.json"
+        "https://rhoulou.github.io/cloudstream/plugins.json"
     ]
 }
