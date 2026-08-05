@@ -23,8 +23,13 @@ import java.net.URLEncoder
  *   * Room page  -> https://chaturbate.com/<username>/ embeds
  *                   window.initialRoomDossier (a double-encoded JSON string)
  *                   whose `hls_source` is a signed edge-stream master HLS
- *   * Master HLS -> passed straight to the player (ExoPlayer resolves the
- *                   LL-HLS master and its ?session= variant chunklists)
+ *   * Stream     -> we fetch the master ourselves (browser UA + Referer) and
+ *                   hand the player the per-variant chunklists, best quality
+ *                   first (mirrors the Stremio addon; the master endpoint 403s
+ *                   non-browser clients, the variants do not)
+ *
+ * The home page mirrors the addon's catalogs: Popular, 5 regions, Couples Live
+ * and one row per genre (tag) for the provider's gender.
  *
  * Robustness: a browser-like User-Agent, a cookie jar (NiceHttp persists it),
  * request pacing and HTTP 429 backoff (Chaturbate rate-limits aggressively),
@@ -39,13 +44,26 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
     override var vpnStatus = VPNStatus.MightBeNeeded
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        val code = GENDER_CODES[gender] ?: gender
-        val filtered = getRooms().filter { it.gender == code }
+        val rooms = getRooms()
+        val specs = rowSpecs()
+        if (page <= 1) {
+            // Page 1 = one row per category/genre, mirroring the addon's catalogs.
+            val rows = specs.mapNotNull { spec ->
+                val items = filterRooms(rooms, spec)
+                if (items.isEmpty()) null
+                else HomePageList(spec.name, items.take(PAGE_SIZE).map { it.toSearchResponse(this) })
+            }
+            return newHomePageResponse(rows)
+        }
+        // Next pages page each row independently (CloudStream tags the request
+        // with the row name we return in the HomePageList).
+        val spec = specs.firstOrNull { it.name == request.name } ?: return null
+        val items = filterRooms(rooms, spec)
         val from = (page - 1) * PAGE_SIZE
-        val slice = filtered.drop(from).take(PAGE_SIZE)
+        val slice = items.drop(from).take(PAGE_SIZE)
         return newHomePageResponse(
-            HomePageList(request.name, slice.map { it.toSearchResponse(this) }),
-            hasNext = from + slice.size < filtered.size
+            HomePageList(spec.name, slice.map { it.toSearchResponse(this) }),
+            hasNext = from + slice.size < items.size
         )
     }
 
@@ -122,6 +140,66 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
             )
         }
         return true
+    }
+
+    // ------------------------------------------------------- category rows
+
+    /** A home-page row: gender filter + optional region / genre (tag) filter. */
+    private data class RowSpec(
+        val name: String,
+        val genderCode: String,
+        val region: String? = null,
+        val tag: String? = null
+    )
+
+    private fun genderLabel(): String = when (gender) {
+        "m" -> "men"
+        "t" -> "trans"
+        else -> "women"
+    }
+
+    /**
+     * Rows shown on the home page, mirroring the addon's catalogs: the gender's
+     * Popular + the 5 region catalogs + Couples Live, then one row per genre in
+     * the gender's genre list (Teen first, etc.).
+     */
+    private fun rowSpecs(): List<RowSpec> {
+        val code = GENDER_CODES[gender] ?: gender
+        val specs = mutableListOf(
+            RowSpec("Popular", code),
+            RowSpec("North America", code, region = "north_america"),
+            RowSpec("South America", code, region = "south_america"),
+            RowSpec("Asia", code, region = "asia"),
+            RowSpec("Europe/Russia", code, region = "europe_russia"),
+            RowSpec("Other Regions", code, region = "other"),
+            RowSpec("Couples Live", "c")
+        )
+        GENRES.getValue(genderLabel()).forEach { tag ->
+            specs.add(RowSpec(tag, code, tag = tag))
+        }
+        return specs
+    }
+
+    /** Filter the roomlist snapshot by a row spec (same rules as the addon). */
+    private fun filterRooms(rooms: List<Room>, spec: RowSpec): List<Room> =
+        rooms.filter { room ->
+            room.gender == spec.genderCode &&
+                (spec.region == null || countryRegion(room.country) == spec.region) &&
+                (spec.tag == null || hasTag(room, spec.tag))
+        }
+
+    /** Map a room's ISO country code to one of the addon's regions. */
+    private fun countryRegion(country: String?): String {
+        if (country.isNullOrBlank()) return "other"
+        val code = country.uppercase()
+        REGION_COUNTRIES.forEach { (region, set) -> if (code in set) return region }
+        return "other"
+    }
+
+    /** Case-insensitive match of a genre against a room's tags (addon hasTag). */
+    private fun hasTag(room: Room, genre: String): Boolean {
+        val wanted = genre.lowercase()
+        return room.tags.orEmpty().any { it.lowercase() == wanted }
     }
 
     // ------------------------------------------------------- search entries
@@ -303,6 +381,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
         @JsonProperty("room_subject") val roomSubject: String? = null,
         @JsonProperty("tags") val tags: List<String>? = null,
         @JsonProperty("gender") val gender: String? = null,
+        @JsonProperty("country") val country: String? = null,
         @JsonProperty("num_users") val numUsers: Int? = null
     )
 
@@ -326,8 +405,46 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
         private const val USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 
-        // Config-page target codes -> roomlist gender codes (s = trans).
-        private val GENDER_CODES = mapOf("f" to "f", "m" to "m", "t" to "s")
+        // Config-page target codes -> roomlist gender codes (s = trans, c = couples).
+        private val GENDER_CODES = mapOf("f" to "f", "m" to "m", "t" to "s", "c" to "c")
+
+        // ISO 3166-1 alpha-2 country codes per addon region (lib/config.js).
+        private val REGION_COUNTRIES = mapOf(
+            "north_america" to setOf(
+                "AG", "BS", "BB", "BZ", "CA", "CR", "CU", "DM", "DO", "SV", "GD", "GT", "HT",
+                "HN", "JM", "MX", "NI", "PA", "PR", "KN", "LC", "VC", "TT", "US"
+            ),
+            "south_america" to setOf("AR", "BO", "BR", "CL", "CO", "EC", "GY", "PY", "PE", "SR", "UY", "VE"),
+            "asia" to setOf(
+                "AF", "AM", "AZ", "BH", "BD", "BT", "BN", "KH", "CN", "GE", "HK", "IN", "ID",
+                "IR", "IQ", "IL", "JP", "JO", "KZ", "KW", "KG", "LA", "LB", "MO", "MY", "MV",
+                "MN", "MM", "NP", "OM", "PK", "PS", "PH", "QA", "SA", "SG", "KR", "LK", "SY",
+                "TW", "TJ", "TH", "TL", "TR", "TM", "AE", "UZ", "VN", "YE"
+            ),
+            "europe_russia" to setOf(
+                "AL", "AD", "AT", "BY", "BE", "BA", "BG", "HR", "CY", "CZ", "DK", "EE", "FI",
+                "FR", "DE", "GR", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU", "MT", "MD",
+                "MC", "ME", "NL", "MK", "NO", "PL", "PT", "RO", "RU", "SM", "RS", "SK", "SI",
+                "ES", "SE", "CH", "UA", "GB", "VA", "XK"
+            )
+        )
+
+        // Genre (tag) lists per gender, from the addon's manifest extras
+        // (lib/config.js GENRES, minus the UI section separators).
+        private val GENRES = mapOf(
+            "women" to listOf(
+                "Teen", "Young", "MILF", "Mature", "Bigboobs", "Bigass", "Hairy", "Latina",
+                "BBW", "Squirt", "Skinny", "Smalltits", "Feet", "Fuckmachine"
+            ),
+            "men" to listOf(
+                "Teen", "Young", "DILF", "Mature", "Bigcook", "Cum", "Lovense", "Muscle",
+                "Latino", "Hairy", "New", "Feet"
+            ),
+            "trans" to listOf(
+                "Teen", "Young", "ILF", "Mature", "Bigcook", "Smallcook", "Mistress", "Femboy",
+                "Partyhouse", "Fuckmachine", "Bigass", "Lovense"
+            )
+        )
 
         private val DOSSIER_REGEX = Regex("""window\.initialRoomDossier = "((?:[^"\\]|\\.)*)";""")
         private val RESOLUTION_REGEX = Regex("""RESOLUTION=\d+x(\d+)""")
