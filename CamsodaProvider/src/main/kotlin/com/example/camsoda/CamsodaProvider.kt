@@ -75,7 +75,7 @@ class CamsodaProvider : MainAPI() {
         // the extra filter query (category=..., haircolor=..., ...).
         val items = fetchModels(request.data, page)
         return newHomePageResponse(
-            HomePageList(request.name, items.map { it.toSearchResponse() }, isHorizontalImages = true),
+            HomePageList(request.name, items.map { it.toSearchResponse() }, isHorizontalImages = false),
             hasNext = items.size >= PAGE_SIZE
         )
     }
@@ -133,6 +133,11 @@ class CamsodaProvider : MainAPI() {
     private fun Model.toSearchResponse(): SearchResponse =
         newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
             posterUrl = posterUrl()
+            posterHeaders = mapOf(
+                "User-Agent" to USER_AGENT,
+                "Referer" to REFERER,
+                "Origin" to ORIGIN
+            )
         }
 
     private fun roomUrl(username: String) = "$mainUrl/$username"
@@ -213,10 +218,12 @@ class CamsodaProvider : MainAPI() {
     }
 
     private inline fun <reified T : Any> parseJson(text: String): T? {
-        // A non-JSON response means a challenge / error page - treat as empty.
+        // A non-JSON response means a challenge / error page - treat as empty
+        // but log a snippet so it shows up in CloudStream's logs.
         if (text.isBlank() || text.startsWith("<!DOCTYPE", ignoreCase = true) ||
             text.startsWith("<html", ignoreCase = true)
         ) {
+            println("Camsoda non-JSON response: ${text.take(200)}")
             return null
         }
         return tryParseJson<T>(text)
@@ -249,6 +256,7 @@ class CamsodaProvider : MainAPI() {
         @JsonProperty("isHd") val isHd: Boolean = false,
         @JsonProperty("isPrivate") val isPrivate: Boolean = false,
         @JsonProperty("imageUrl") val imageUrl: String? = null,
+        @JsonProperty("imageUrlSfw") val imageUrlSfw: String? = null,
         @JsonProperty("title") val title: String? = null,
         @JsonProperty("tags") val tags: List<String>? = null,
         @JsonProperty("country") val country: String? = null,
@@ -257,9 +265,9 @@ class CamsodaProvider : MainAPI() {
     ) {
         val isReal: Boolean get() = username.isNotBlank() && username.lowercase() != "profile"
 
-        /** Fix protocol-relative poster URLs. */
+        /** Fix protocol-relative poster URLs; fall back to the SFW thumbnail. */
         fun posterUrl(): String? {
-            val raw = imageUrl ?: return null
+            val raw = imageUrl ?: imageUrlSfw ?: return null
             return if (raw.startsWith("//")) "https:$raw" else raw
         }
 
