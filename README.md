@@ -65,17 +65,17 @@ Pages.)
 
 ### Cam4
 
-- **Homepage**: rows mirroring the site tabs — All, Female and Couples (the
-  Transgender and Male tabs are skipped). The directory API
-  (`/api/directoryCams`) caps a page at 60 rooms and paginates with `page=N`.
-- **Search**: the same directory endpoint with a `search=` param (returns a
-  bare JSON array).
-- **Detail**: metadata from `rest/v1.0/profile/<user>/info` (name,
-  `profileImageUrl`/`avatarUrl` poster, bio). The room pages are a JS-rendered
-  SPA without og: meta tags, so scraping the HTML — as the original plugin did
-  — yields a blank load screen.
-- **Playback**: `rest/v1.0/profile/<user>/streamInfo` yields `cdnURL`, a master
-  on cam4-hls.xcdnpro.com; master, chunklist and segments all serve 200 to any
+- **Homepage**: rows mirroring the site tabs — Female and Couples (the Male and
+  Transgender tabs are skipped). Listing uses the GraphQL endpoint
+  (`/graph?operation=getGenderPreferencePageData`) with the
+  `apollographql-client-name: CAM4-client` header, filtered server-side by
+  `gender` and paged with `cursor: { first: 200, offset }`. Each item already
+  carries the live HLS master (`preview.src`) and poster (`profileImageURL`).
+- **Search**: the directory endpoint (`/api/directoryCams`) with a `search=`
+  param (returns a bare JSON array).
+- **Detail / playback**: single-user directory lookup
+  (`/api/directoryCams?...&username=<user>`) for poster/viewers metadata and
+  the `hlsPreviewUrl` master; master, variant and segments all serve 200 to any
   client, so the master is passed straight to the player.
 
 ## Build the .cs3 plugin
