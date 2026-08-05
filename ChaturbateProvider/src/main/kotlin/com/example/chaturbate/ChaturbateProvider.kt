@@ -179,9 +179,8 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
     companion object {
         /**
          * Base URL of the deployed Chaturbate Stremio addon server.
-         * Example: "https://chaturbate-addon.up.railway.app"
          */
-        private const val ADDON_URL = "https://replace-with-your-addon-url"
+        private const val ADDON_URL = "https://rhoulou.github.io/cloudstream"
 
         fun String.encodeUri() = URLEncoder.encode(this, "utf8")
     }
