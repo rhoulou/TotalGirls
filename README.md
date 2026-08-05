@@ -1,12 +1,13 @@
 # Cam plugins - CloudStream 3
 
 Live cam plugins (18+) for **CloudStream 3**: **Chaturbate**, **Stripchat**,
-**Cam4** and **BongaCams** (girls only). They **scrape the sites directly from
-the phone** — no addon server needed. The Kotlin ports mirror the battle-tested
-client logic from the Node addons (`Streamio/Chaturbate`, `Streamio/Stripchat`)
-and the `punpunsx/cloudstream-18plus-Extensions` Cam4 provider plus the working
-`bongacams.js` / `viewer.php` scrapers: roomlist snapshots, cookie jar, request
-pacing, HTTP 429 backoff and Cloudflare detection.
+**Cam4**, **BongaCams** and **CamSoda** (girls only). They **scrape the sites
+directly from the phone** — no addon server needed. The Kotlin ports mirror the
+battle-tested client logic from the Node addons (`Streamio/Chaturbate`,
+`Streamio/Stripchat`) and the `punpunsx/cloudstream-18plus-Extensions` Cam4
+provider plus the working `bongacams.js` / `viewer.php` and `camsoda.js` /
+`viewer.php` scrapers: roomlist snapshots, cookie jar, request pacing, HTTP 429
+backoff and Cloudflare detection.
 
 Each plugin provides the **Girls** category (female cams plus a Couples row on
 the home page); the Guys and Trans categories are deliberately left out.
@@ -107,6 +108,32 @@ Pages.)
   site answers with its challenge page the provider returns empty rows instead
   of crashing.
 
+### Camsoda
+
+- **Homepage**: female-only category rows — All Girls plus the 18 curated
+  categories (New, Teen 18+, MILF, Mature, Petite, BBW, Asian, Ebony, Latina,
+  White, Big Tits, Big Ass, Anal, Squirt, Dildo, Lovense, Top Rated, Pornstar).
+  Each row is a direct server-side request to the site's own SPA endpoint
+  `/api/v1/browse/react/<path>?p=<page>&gender-hide=m,t,c&perPage=98` (browser
+  UA + Referer), where `<path>` mirrors the `/girls/<slug>` category URLs
+  (verified against the `/girls/categories` index). `gender-hide=m,t,c` keeps
+  it strictly female (male/trans/couples hidden).
+- **Search**: server-side `/api/v1/browse/react/search/<query>?p=<page>&perPage=98`
+  (same `userList` response), paged with a dedup break.
+- **Detail / playback**: the profile pages are Cloudflare-protected, so the
+  detail screen only carries the username (the tile already has the poster from
+  the listing, preferring `offlinePictureUrl` over `thumbUrl`). The live master
+  comes from the token endpoint `/api/v1/video/vtoken/<username>?username=guest_<n>`,
+  which returns `edge_servers` / `app` / `stream_name` / `token`; per server the
+  master is built the same way as the CamsodaRecorder / streamlink extractors:
+  `https://<server>/<app>/mp4:<stream_name>_mjpeg/playlist.m3u8?token=<token>`
+  and passed straight to the player. Private shows / offline models yield no
+  links.
+- **Cloudflare note**: like BongaCams, `camsoda.com` challenges datacenter IPs;
+  the browse and vtoken endpoints work from a residential/mobile IP with browser
+  headers, and the provider returns empty rows instead of crashing when the site
+  answers with its challenge page.
+
 ## Build the .cs3 plugin
 
 You need **Android Studio** (or a JDK 11+ with the Android SDK and Gradle):
@@ -131,7 +158,7 @@ GitHub Pages always serves the latest build.
 repo.json                  CloudStream repository descriptor (manifestVersion 1)
 plugins.json               Plugin list (one entry per .cs3 file)
 build.gradle.kts           Root build script (Cloudstream gradle plugin)
-settings.gradle.kts        Includes ChaturbateProvider + StripchatProvider + Cam4Provider + BongaCamsProvider
+settings.gradle.kts        Includes ChaturbateProvider + StripchatProvider + Cam4Provider + BongaCamsProvider + CamsodaProvider
 .github/workflows/build.yml   Builds + commits the .cs3 on push
 gradle.properties
 gradle/wrapper/            Gradle wrapper properties
@@ -155,6 +182,11 @@ BongaCamsProvider/         BongaCams plugin (.cs3)
   src/main/kotlin/com/example/bongacams/
     BongaCamsProvider.kt      Direct-scrape provider (listing_v3 categories + bcvcdn master)
     BongaCamsProviderPlugin.kt   Registers the provider (female category rows)
+CamsodaProvider/           CamSoda plugin (.cs3)
+  build.gradle.kts         Plugin metadata
+  src/main/kotlin/com/example/camsoda/
+    CamsodaProvider.kt        Direct-scrape provider (browse/react categories + vtoken master)
+    CamsodaProviderPlugin.kt  Registers the provider (female category rows)
 ```
 
 ## Notes
