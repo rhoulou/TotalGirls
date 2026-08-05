@@ -4,12 +4,16 @@
         "internalName": "ChaturbateProvider",
         "url": "https://rhoulou.github.io/cloudstream/ChaturbateProvider.cs3",
         "status": 1,
-        "version": 5,
+        "version": 6,
         "apiVersion": 1,
-        "authors": ["rhoulou"],
-        "description": "Live Chaturbate cams (Girls/Guys/Trans). Scrapes chaturbate.com directly from the phone.",
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Chaturbate cams (Girls). Scrapes chaturbate.com directly from the phone.",
         "language": "en",
-        "tvTypes": ["Live"],
+        "tvTypes": [
+            "Live"
+        ],
         "iconUrl": "https://rhoulou.github.io/cloudstream/chaturbate.png",
         "repositoryUrl": "https://github.com/rhoulou/cloudstream"
     },
@@ -18,13 +22,35 @@
         "internalName": "StripchatProvider",
         "url": "https://rhoulou.github.io/cloudstream/StripchatProvider.cs3",
         "status": 3,
+        "version": 2,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Stripchat cams (Girls). Scrapes stripchat.com directly from the phone.",
+        "language": "en",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://rhoulou.github.io/cloudstream/stripchat.png",
+        "repositoryUrl": "https://github.com/rhoulou/cloudstream"
+    },
+    {
+        "name": "Cam4",
+        "internalName": "Cam4Provider",
+        "url": "https://rhoulou.github.io/cloudstream/Cam4Provider.cs3",
+        "status": 3,
         "version": 1,
         "apiVersion": 1,
-        "authors": ["rhoulou"],
-        "description": "Live Stripchat cams (Girls/Guys/Trans). Scrapes stripchat.com directly from the phone.",
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Cam4 cams. Scrapes cam4.com directly from the phone.",
         "language": "en",
-        "tvTypes": ["Live"],
-        "iconUrl": "https://rhoulou.github.io/cloudstream/stripchat.png",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://rhoulou.github.io/cloudstream/cam4.png",
         "repositoryUrl": "https://github.com/rhoulou/cloudstream"
     }
 ]

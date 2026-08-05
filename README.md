@@ -1,13 +1,14 @@
 # Cam plugins - CloudStream 3
 
-Live cam plugins (18+) for **CloudStream 3**: **Chaturbate** and **Stripchat**.
-They **scrape the sites directly from the phone** — no addon server needed. The
-Kotlin ports mirror the battle-tested client logic from the Node addons
-(`Streamio/Chaturbate`, `Streamio/Stripchat`): roomlist snapshots, cookie jar,
-request pacing, HTTP 429 backoff and Cloudflare detection.
+Live cam plugins (18+) for **CloudStream 3**: **Chaturbate**, **Stripchat** and
+**Cam4** (girls only). They **scrape the sites directly from the phone** — no
+addon server needed. The Kotlin ports mirror the battle-tested client logic from
+the Node addons (`Streamio/Chaturbate`, `Streamio/Stripchat`) and the
+`punpunsx/cloudstream-18plus-Extensions` Cam4 provider: roomlist snapshots,
+cookie jar, request pacing, HTTP 429 backoff and Cloudflare detection.
 
-Each plugin registers three providers — **Girls** (f), **Guys** (m) and
-**Trans** (t) — mirroring the original configure page.
+Each plugin provides the **Girls** category (female cams plus a Couples row on
+the home page); the Guys and Trans categories are deliberately left out.
 
 > Note on current CloudStream 3: since v0.5.x the app only installs
 > *compiled* plugins (`.cs3` files served from a repository); the old
@@ -62,6 +63,21 @@ Pages.)
   straight to the player — it serves 200 to any client and its variants are
   plain HLS.
 
+### Cam4
+
+- **Homepage**: rows mirroring the site tabs — All, Female and Couples (the
+  Transgender and Male tabs are skipped). The directory API
+  (`/api/directoryCams`) caps a page at 60 rooms and paginates with `page=N`.
+- **Search**: the same directory endpoint with a `search=` param (returns a
+  bare JSON array).
+- **Detail**: metadata from `rest/v1.0/profile/<user>/info` (name,
+  `profileImageUrl`/`avatarUrl` poster, bio). The room pages are a JS-rendered
+  SPA without og: meta tags, so scraping the HTML — as the original plugin did
+  — yields a blank load screen.
+- **Playback**: `rest/v1.0/profile/<user>/streamInfo` yields `cdnURL`, a master
+  on cam4-hls.xcdnpro.com; master, chunklist and segments all serve 200 to any
+  client, so the master is passed straight to the player.
+
 ## Build the .cs3 plugin
 
 You need **Android Studio** (or a JDK 11+ with the Android SDK and Gradle):
@@ -86,7 +102,7 @@ GitHub Pages always serves the latest build.
 repo.json                  CloudStream repository descriptor (manifestVersion 1)
 plugins.json               Plugin list (one entry per .cs3 file)
 build.gradle.kts           Root build script (Cloudstream gradle plugin)
-settings.gradle.kts        Includes ChaturbateProvider + StripchatProvider
+settings.gradle.kts        Includes ChaturbateProvider + StripchatProvider + Cam4Provider
 .github/workflows/build.yml   Builds + commits the .cs3 on push
 gradle.properties
 gradle/wrapper/            Gradle wrapper properties
@@ -94,12 +110,17 @@ ChaturbateProvider/        Chaturbate plugin (.cs3)
   build.gradle.kts         Plugin metadata (version, description, icon...)
   src/main/kotlin/com/example/chaturbate/
     ChaturbateProvider.kt      Direct-scrape provider (roomlist + dossier)
-    ChaturbateProviderPlugin.kt   Registers Girls/Guys/Trans providers
+    ChaturbateProviderPlugin.kt   Registers the Girls provider
 StripchatProvider/         Stripchat plugin (.cs3)
   build.gradle.kts         Plugin metadata
   src/main/kotlin/com/example/stripchat/
     StripchatProvider.kt      Direct-scrape provider (guest hash + roomlist)
-    StripchatProviderPlugin.kt   Registers Girls/Guys/Trans providers
+    StripchatProviderPlugin.kt   Registers the Girls provider
+Cam4Provider/              Cam4 plugin (.cs3)
+  build.gradle.kts         Plugin metadata
+  src/main/kotlin/com/example/cam4/
+    Cam4Provider.kt           Direct-scrape provider (directory + streamInfo)
+    Cam4ProviderPlugin.kt     Registers the provider (All / Female / Couples)
 ```
 
 ## Notes

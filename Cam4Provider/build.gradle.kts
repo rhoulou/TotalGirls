@@ -1,9 +1,9 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 6
+version = 1
 
 cloudstream {
     language = "en"
-    description = "Live Chaturbate cams (Girls). Scrapes chaturbate.com directly from the phone - roomlist + dossier logic, master HLS passed straight to the player."
+    description = "Live Cam4 cams. Scrapes cam4.com directly from the phone - directory + streamInfo logic, xcdnpro HLS master passed to the player."
     authors = listOf("rhoulou")
 
     /**
@@ -16,5 +16,5 @@ cloudstream {
     status = 3 // beta until you are happy with it
     tvTypes = listOf("Live")
 
-    iconUrl = "https://rhoulou.github.io/cloudstream/chaturbate.png"
+    iconUrl = "https://rhoulou.github.io/cloudstream/cam4.png"
 }

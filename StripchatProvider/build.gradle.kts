@@ -1,9 +1,9 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 1
+version = 2
 
 cloudstream {
     language = "en"
-    description = "Live Stripchat cams (Girls/Guys/Trans). Scrapes stripchat.com directly from the phone - guest hash + roomlist logic, saawsedge HLS master passed to the player."
+    description = "Live Stripchat cams (Girls). Scrapes stripchat.com directly from the phone - guest hash + roomlist logic, saawsedge HLS master passed to the player."
     authors = listOf("rhoulou")
 
     /**
