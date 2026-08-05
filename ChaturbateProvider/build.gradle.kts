@@ -4,7 +4,7 @@ version = 1
 cloudstream {
     language = "en"
     description = "Live Chaturbate cams (Girls/Guys/Trans). Bridge to the Chaturbate Stremio addon server - set the addon URL in ChaturbateProvider.kt before building."
-    authors = listOf("you")
+    authors = listOf("rhoulou")
 
     /**
      * Status int as the following:
