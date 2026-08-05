@@ -4,13 +4,13 @@
         "internalName": "ChaturbateProvider",
         "url": "https://rhoulou.github.io/cloudstream/ChaturbateProvider.cs3",
         "status": 1,
-        "version": 1,
+        "version": 3,
         "apiVersion": 1,
         "authors": ["rhoulou"],
-        "description": "Live Chaturbate cams (Girls/Guys/Trans). Bridge to the Chaturbate Stremio addon server.",
+        "description": "Live Chaturbate cams (Girls/Guys/Trans). Scrapes chaturbate.com directly from the phone.",
         "language": "en",
-        "tvTypes": ["Others"],
-        "iconUrl": "https://www.google.com/s2/favicons?domain=chaturbate.com&sz=%size%",
+        "tvTypes": ["Live"],
+        "iconUrl": "https://rhoulou.github.io/cloudstream/chaturbate.png",
         "repositoryUrl": "https://github.com/rhoulou/cloudstream"
     }
 ]

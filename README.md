@@ -1,10 +1,11 @@
 # Chaturbate - CloudStream 3 plugin
 
-A **CloudStream 3** addon for live Chaturbate cams (18+). It is a *bridge*
-to the Chaturbate **Stremio addon server** (the Node project in
-`Streamio/Chaturbate`): the plugin reuses the addon's manifest / catalog /
-meta / stream endpoints, so all the fragile Chaturbate scraping (cookies,
-pacing, Cloudflare, HLS) stays in the battle-tested Node client.
+A **CloudStream 3** plugin for live Chaturbate cams (18+). It **scrapes
+chaturbate.com directly from the phone** — no addon server needed. The Kotlin
+port mirrors the battle-tested client logic from the Node/Kodi addons
+(`Streamio/Chaturbate` / `Kodi/Chaturbate`): roomlist snapshot, cookie jar,
+request pacing, HTTP 429 backoff, Cloudflare detection, and the
+`window.initialRoomDossier` double-decode.
 
 It registers three providers — **Chaturbate Girls** (f), **Chaturbate Guys**
 (m) and **Chaturbate Trans** (t) — mirroring the original configure page.
@@ -15,31 +16,38 @@ It registers three providers — **Chaturbate Girls** (f), **Chaturbate Guys**
 > official Kotlin plugin format (same one used by
 > `hexated/cloudstream-extensions`).
 
-## 1. Deploy the addon server (once)
+## Install
 
-The Node addon must be reachable from your phone over **https** (Android
-blocks plain `http://`):
+Easiest (no hosting): copy `ChaturbateProvider.cs3` to your phone and open it
+with CloudStream 3 ("Install from file"). Or use the one-click page:
 
-```bash
-cd Streamio/Chaturbate
-npm start          # local test: http://localhost:3000/configure/
-```
+- https://rhoulou.github.io/cloudstream/
 
-Deploy it to any Node host (Railway / Render / Fly.io — free tiers work) and
-note the public URL, e.g. `https://chaturbate-addon.up.railway.app`.
+(The page deep-links into CloudStream 3 via the `cloudstreamrepo://` scheme.
+The repo descriptors `repo.json` / `plugins.json` are served from GitHub
+Pages.)
 
-## 2. Point the plugin at it
+## How it works
 
-Edit **one line** in
-`ChaturbateProvider/src/main/kotlin/com/example/chaturbate/ChaturbateProvider.kt`:
+- **Homepage**: one list per provider, paged. The roomlist API
+  (`/api/ts/roomlist/room-list/`) caps a page at 100 rooms and ignores the
+  `gender` param, so a 20-page snapshot (~2000 rooms, 90s cache) is filtered
+  client-side by gender code (`f`/`m`/`s`). The first load takes a few
+  seconds; the following pages are instant from cache.
+- **Search**: client-side username substring match over the snapshot.
+- **Detail**: room meta (poster, room subject, viewer count, tags) from the
+  snapshot; falls back to the room page's og meta tags.
+- **Playback**: the room page's `window.initialRoomDossier` is double-decoded
+  and its `hls_source` (a signed LL-HLS master playlist) is passed straight to
+  the player, which resolves the `?session=` variant chunklists.
+- **Robustness**: browser-like User-Agent, persistent cookie jar, ≥350ms
+  pacing between requests, 3 retries with 2.5s backoff on HTTP 429, and empty
+  lists instead of errors when Chaturbate answers with a Cloudflare JS
+  interstitial page.
 
-```kotlin
-private const val ADDON_URL = "https://chaturbate-addon.up.railway.app"
-```
+## Build the .cs3 plugin
 
-## 3. Build the .cs3 plugin
-
-You need **Android Studio** (or a JDK 11+ with the Android SDK and Gradle 7.1):
+You need **Android Studio** (or a JDK 11+ with the Android SDK and Gradle):
 
 ```bash
 # from this folder
@@ -47,21 +55,13 @@ gradle wrapper        # first time only (creates gradlew)
 ./gradlew :ChaturbateProvider:cloudstreamBuild   # or assembleDebug
 ```
 
-The build output is `ChaturbateProvider/build/outputs/.../ChaturbateProvider.cs3`.
-(If the task name differs in your setup, run `./gradlew tasks` — the
-Cloudstream gradle plugin publishes the plugin file on `assemble`/`publish`.)
+The build output is
+`ChaturbateProvider/build/outputs/.../ChaturbateProvider.cs3`. (If the task
+name differs in your setup, run `./gradlew tasks`.)
 
-## 4. Install in CloudStream 3
-
-Easiest (no hosting): copy the `.cs3` file to your phone and open it with
-CloudStream 3 ("Install from file"). Or serve it:
-
-1. Put `ChaturbateProvider.cs3`, `plugins.json` and `repo.json` on any static
-   host (GitHub Pages, Cloudflare Pages, Netlify...).
-2. Fix the URLs in `plugins.json` (the `.cs3` URL) and `repo.json` (the
-   `plugins.json` URL).
-3. In CloudStream 3: **Settings → Extensions → Add repository** and paste the
-   `repo.json` URL. The Chaturbate providers then appear under Extensions.
+The repository ships a GitHub Actions workflow (`.github/workflows/build.yml`)
+that builds the plugin and commits the resulting `.cs3` back to the repo, so
+GitHub Pages always serves the latest build.
 
 ## Layout
 
@@ -70,21 +70,22 @@ repo.json                  CloudStream repository descriptor (manifestVersion 1)
 plugins.json               Plugin list (one entry per .cs3 file)
 build.gradle.kts           Root build script (Cloudstream gradle plugin)
 settings.gradle.kts        Includes ChaturbateProvider
+.github/workflows/build.yml   Builds + commits the .cs3 on push
 gradle.properties
 gradle/wrapper/            Gradle wrapper properties
 ChaturbateProvider/
   build.gradle.kts         Plugin metadata (version, description, icon...)
   src/main/AndroidManifest.xml
   src/main/kotlin/com/example/chaturbate/
-    ChaturbateProvider.kt      MainAPI bridge -> the Stremio addon server
+    ChaturbateProvider.kt      Direct-scrape provider (roomlist + dossier)
     ChaturbateProviderPlugin.kt   Registers Girls/Guys/Trans providers
 ```
 
 ## Notes
 
 - 18+ content; not affiliated with or endorsed by Chaturbate.
-- The addon server keeps a 90s roomlist snapshot, so catalog loads are fast
-  and Chaturbate's rate limits are respected (the same behavior as the
-  Stremio addon).
-- Room items open with the live HLS stream; if a room is offline only the
-  "Web / Chat Now" fallback is offered.
+- Room items open with the live HLS stream. If a room is offline there is
+  nothing to play (no "Web / Chat" fallback in CloudStream).
+- Chaturbate occasionally serves a Cloudflare JS interstitial that Jsoup
+  cannot parse — in that case lists come back empty and `vpnStatus` is set to
+  "might need VPN".

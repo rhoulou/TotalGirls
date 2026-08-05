@@ -1,9 +1,9 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 2
+version = 3
 
 cloudstream {
     language = "en"
-    description = "Live Chaturbate cams (Girls/Guys/Trans). Bridge to the Chaturbate Stremio addon server - set the addon URL in ChaturbateProvider.kt before building."
+    description = "Live Chaturbate cams (Girls/Guys/Trans). Scrapes chaturbate.com directly from the phone - roomlist + dossier logic, master HLS passed straight to the player."
     authors = listOf("rhoulou")
 
     /**
@@ -14,7 +14,7 @@ cloudstream {
      * 3: Beta only
      */
     status = 3 // beta until you are happy with it
-    tvTypes = listOf("Others")
+    tvTypes = listOf("Live")
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=chaturbate.com&sz=%size%"
+    iconUrl = "https://rhoulou.github.io/cloudstream/chaturbate.png"
 }
