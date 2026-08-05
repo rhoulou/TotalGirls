@@ -4,7 +4,7 @@
         "internalName": "ChaturbateProvider",
         "url": "https://rhoulou.github.io/cloudstream/ChaturbateProvider.cs3",
         "status": 1,
-        "version": 3,
+        "version": 4,
         "apiVersion": 1,
         "authors": ["rhoulou"],
         "description": "Live Chaturbate cams (Girls/Guys/Trans). Scrapes chaturbate.com directly from the phone.",

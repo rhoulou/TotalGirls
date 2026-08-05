@@ -94,18 +94,33 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
         val username = data.trimEnd('/').substringAfterLast('/')
         val dossier = fetchDossier(username) ?: return false
         val hlsSource = dossier.hlsSource ?: return false
-        callback.invoke(
-            newExtractorLink(
-                source = "Chaturbate",
-                name = "Chaturbate",
-                url = hlsSource,
-                type = ExtractorLinkType.M3U8
-            ) {
-                referer = REFERER
-                quality = Qualities.Unknown.value
-                headers = mapOf("User-Agent" to USER_AGENT, "Referer" to REFERER)
-            }
-        )
+        // Fetch the master playlist ourselves (browser UA + Referer) and hand the
+        // player only the per-variant chunklist URLs, like the Stremio addon does.
+        // The mmcdn master endpoint 403s requests without a browser fingerprint,
+        // but the variant chunklists are served to any client.
+        val master = fetch(hlsSource)
+        if (master.isBlank()) return false
+        val variants = parseMasterVariants(master, hlsSource)
+        if (variants.isEmpty()) {
+            println("Chaturbate no HLS variants parsed from master for $username")
+            return false
+        }
+        println("Chaturbate ${variants.size} HLS variants for $username")
+        variants.forEach { (label, url) ->
+            println("Chaturbate variant $label -> $url")
+            callback.invoke(
+                newExtractorLink(
+                    source = "Chaturbate",
+                    name = label,
+                    url = url,
+                    type = ExtractorLinkType.M3U8
+                ) {
+                    referer = REFERER
+                    quality = label.removeSuffix("p").toIntOrNull() ?: Qualities.Unknown.value
+                    headers = mapOf("User-Agent" to USER_AGENT, "Referer" to REFERER)
+                }
+            )
+        }
         return true
     }
 
@@ -132,11 +147,16 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
                         "Accept-Language" to "en-US,en;q=0.9"
                     )
                 )
-                if (res.isSuccessful) return res.text
+                if (res.isSuccessful) {
+                    println("Chaturbate GET ${res.okhttpResponse.request.url} -> ${res.okhttpResponse.code} (${res.text.length}B)")
+                    return res.text
+                }
                 if (res.okhttpResponse.code == 429) { // rate limited -> longer pause
+                    println("Chaturbate GET ${res.okhttpResponse.request.url} -> 429 (rate limited)")
                     delay(RATE_LIMIT_PAUSE_MS)
                     continue
                 }
+                println("Chaturbate GET ${res.okhttpResponse.request.url} -> ${res.okhttpResponse.code}")
                 return ""
             } catch (e: Exception) {
                 lastError = e // network hiccup -> retry
@@ -167,6 +187,41 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
         // The captured value is a JS string literal holding a JSON string.
         val inner = tryParseJson<String>("\"$raw\"") ?: return null
         return tryParseJson<RoomDossier>(inner)
+    }
+
+    /**
+     * Parse an LL-HLS master playlist into its variant chunklists, best quality
+     * first. Mirrors parseMasterPlaylist in the working Stremio addon: variant
+     * URIs are root-relative paths carrying a ?session= param; we resolve them
+     * against the master URL. The #EXT-X-MEDIA audio group is ignored (the
+     * variants are video-only, as in the addon).
+     */
+    private fun parseMasterVariants(master: String, baseUrl: String): List<Pair<String, String>> {
+        val out = mutableListOf<Pair<String, String>>()
+        val lines = master.lines()
+        var i = 0
+        while (i < lines.size) {
+            val line = lines[i].trim()
+            if (!line.startsWith("#EXT-X-STREAM-INF")) { i++; continue }
+            val height = RESOLUTION_REGEX.find(line)?.groupValues?.get(1)?.toIntOrNull()
+            var uri: String? = null
+            while (i + 1 < lines.size) {
+                i++
+                val next = lines[i].trim()
+                if (next.isEmpty() || next.startsWith("#")) continue
+                uri = next
+                break
+            }
+            if (!uri.isNullOrBlank()) {
+                val resolved = runCatching { java.net.URI(baseUrl).resolve(uri).toString() }
+                    .getOrNull() ?: uri
+                val label = if (height != null) "${height}p" else "Auto"
+                out.add(label to resolved)
+            }
+        }
+        return out.sortedByDescending { (label, _) ->
+            label.removeSuffix("p").toIntOrNull() ?: 0
+        }
     }
 
     // ------------------------------------------------------ roomlist snapshot
@@ -275,6 +330,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
         private val GENDER_CODES = mapOf("f" to "f", "m" to "m", "t" to "s")
 
         private val DOSSIER_REGEX = Regex("""window\.initialRoomDossier = "((?:[^"\\]|\\.)*)";""")
+        private val RESOLUTION_REGEX = Regex("""RESOLUTION=\d+x(\d+)""")
 
         private val roomLock = Any()
         private val paceLock = Any()
