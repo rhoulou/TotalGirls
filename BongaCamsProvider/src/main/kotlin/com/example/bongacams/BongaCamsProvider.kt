@@ -7,38 +7,41 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import java.net.URLEncoder
 
 /**
  * CloudStream 3 provider for BongaCams live cams (girls only).
  *
- * Scrapes bongacams.com directly from the phone (no addon server), mirroring
- * the working bongacams.js / viewer.php scrapers:
+ * Data comes from the lemoncams.com open API instead of bongacams.com directly:
+ * bongacams.com/tools/listing_v3.php is Cloudflare-protected (cookie challenge)
+ * and cannot be scraped from a phone without a browser, so we use the aggregator
+ * that mirrors the bongacams room list and already exposes the playable stream:
  *
- *   * Room list -> GET /tools/listing_v3.php?livetab=female&limit=140&offset=
- *                  [&category=<slug>] (browser UA + Referer + X-Requested-With).
- *                  Each model already carries the thumb, viewers, country and
- *                  the `esid` used to build the live HLS master.
- *   * Stream    -> the master is built from the listing: 
- *                  https://<esid>-rn.bcvcdn.com/hls/stream_<username>/playlist.m3u8
- *                  (the bcvcdn edge serves it to any client, so it is passed
- *                  straight to the player, like the working scraper does).
- *   * Search    -> no listing search param exists, so we filter a cached
- *                  "all female" snapshot client-side (same as the JS viewer).
- *   * Metadata  -> poster / viewers / country from the cached listing (the
- *                  profile pages are Cloudflare-protected, so no dossier).
+ *   * Room list -> GET https://api-v2-prod.lemoncams.com/main
+ *                  ?page=<n>&provider=bongacams&function=cams&project=lemoncams
+ *                  &gender=female[&category=<slug>|&haircolor=<slug>|&ishd=true
+ *                  |&minage=<n>&maxage=<n>]  (browser UA + lemoncams Referer).
+ *                  The response cams[] array carries the thumb, viewer count,
+ *                  country, age, tags and the direct HLS master (embedUrl).
+ *   * Stream    -> cam.embedUrl is the bcvcdn LL-HLS master the lemoncams player
+ *                  itself uses (https://<edge>.bcvcdn.com/hls/stream_<user>/
+ *                  playlist.m3u8) - served to any client, so it is passed
+ *                  straight to the player. Private shows / offline models
+ *                  either lack embedUrl or simply fail to play.
+ *   * Search    -> the API supports ?query=<term>.
+ *   * Metadata  -> poster / title / viewers / country / age / languages from
+ *                  the cam object (no profile-page scraping).
  *
- * Home rows mirror the viewer's category list: All Female + the 18 categories
- * (arab, asian, bbw, bdsm, big-tits, blonde, brunette, college-girls, ebony,
- * latina, mature, medium-tits, milf, shaved-pussy, small-tits, teens-18,
- * white-girls, young).
+ * Home rows are all gender=female plus the aggregator's category / hair color /
+ * HD / age filters: All Female, HD, Under 20, Twenties, Thirties, 40+, Asian,
+ * Big Dick, Big Tits, BDSM, Ebony, Hairy, Latina, Mature, MILF, Small Tits,
+ * Tattoo, Teen, Blonde, Brunette, Redhead.
  *
  * Robustness: browser-like headers, request pacing and HTTP 429 backoff, a
  * shared model cache (every listing response feeds it, so any model shown on
- * the home page has its esid available for playback), plus graceful handling
- * of the Cloudflare challenge page (non-JSON responses become empty rows).
+ * the home page has its embedUrl available for playback), plus graceful
+ * handling of non-JSON responses (empty rows).
  */
 class BongaCamsProvider : MainAPI() {
     override var mainUrl = "https://bongacams.com"
@@ -48,58 +51,54 @@ class BongaCamsProvider : MainAPI() {
     override var vpnStatus = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "all" to "All Female",
-        "arab" to "Arab",
-        "asian" to "Asian",
-        "bbw" to "BBW",
-        "bdsm" to "BDSM",
-        "big-tits" to "Big Tits",
-        "blonde" to "Blonde",
-        "brunette" to "Brunette",
-        "college-girls" to "College Girls",
-        "ebony" to "Ebony",
-        "latina" to "Latina",
-        "mature" to "Mature",
-        "medium-tits" to "Medium Tits",
-        "milf" to "MILF",
-        "shaved-pussy" to "Shaved Pussy",
-        "small-tits" to "Small Tits",
-        "teens-18" to "Teens 18+",
-        "white-girls" to "White Girls",
-        "young" to "Young",
+        "" to "All Female",
+        "ishd=true" to "HD",
+        "minage=18&maxage=19" to "Under 20",
+        "minage=20&maxage=30" to "Twenties",
+        "minage=31&maxage=40" to "Thirties",
+        "minage=41" to "40+",
+        "category=asian" to "Asian",
+        "category=bigdick" to "Big Dick",
+        "category=bigtits" to "Big Tits",
+        "category=bdsm" to "BDSM",
+        "category=ebony" to "Ebony",
+        "category=hairy" to "Hairy",
+        "category=latina" to "Latina",
+        "category=mature" to "Mature",
+        "category=milf" to "MILF",
+        "category=smalltits" to "Small Tits",
+        "category=tattoo" to "Tattoo",
+        "category=teen" to "Teen 18+",
+        "haircolor=blonde" to "Blonde",
+        "haircolor=brunette" to "Brunette",
+        "haircolor=redhead" to "Redhead",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        if (page <= 1) {
-            // Page 1 = one server-side filtered row per category.
-            val rows = rowSpecs.mapNotNull { spec ->
-                val items = fetchModels(spec.category, 0)
-                if (items.isEmpty()) null
-                else HomePageList(spec.name, items.map { it.toSearchResponse() }, isHorizontalImages = true)
-            }
-            return newHomePageResponse(rows)
-        }
-        // Next pages page each row independently via the listing offset.
-        val spec = rowSpecs.firstOrNull { it.name == request.name } ?: return null
-        val items = fetchModels(spec.category, (page - 1) * PAGE_SIZE)
+        // Each row is one server-side filtered request; the row's data string is
+        // the extra filter query (category=..., haircolor=..., ...).
+        val items = fetchModels(request.data, page)
         return newHomePageResponse(
-            HomePageList(spec.name, items.map { it.toSearchResponse() }, isHorizontalImages = true),
+            HomePageList(request.name, items.map { it.toSearchResponse() }, isHorizontalImages = true),
             hasNext = items.size >= PAGE_SIZE
         )
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        val q = query.lowercase()
-        return getAllFemale()
-            .filter { it.username.lowercase().contains(q) || (it.displayName ?: "").lowercase().contains(q) }
-            .map { it.toSearchResponse() }
+        val url = buildUrl(page = 1, filters = "query=${URLEncoder.encode(query, "utf8")}")
+        val text = fetch(url)
+        if (text.isBlank()) return emptyList()
+        val models = parseJson<Response>(text)?.cams.orEmpty().filter { it.isReal }
+        cacheAll(models)
+        return models.map { it.toSearchResponse() }
     }
 
     override suspend fun load(url: String): LoadResponse? {
         val username = url.trimEnd('/').substringAfterLast('/')
+        if (username.isBlank()) return null
         val model = findModel(username)
-        return newLiveStreamLoadResponse(model?.displayName?.takeIf { it.isNotBlank() } ?: username, url, url) {
-            posterUrl = model?.thumbUrl()
+        return newLiveStreamLoadResponse(model?.username?.takeIf { it.isNotBlank() } ?: username, url, url) {
+            posterUrl = model?.posterUrl()
             plot = model?.plot()
             tags = model?.tags()
         }
@@ -112,23 +111,22 @@ class BongaCamsProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val username = data.trimEnd('/').substringAfterLast('/')
+        if (username.isBlank()) return false
         val model = findModel(username)
-        val esid = model?.esid ?: return false
+        val embed = model?.embedUrl?.takeIf { it.isNotBlank() } ?: return false
         // The bcvcdn edge serves the master to any client, so it can be passed
-        // straight through (same as the working scraper's hlsUrl construction).
-        val host = if (esid.endsWith("-rn")) esid else "$esid-rn"
-        val master = "https://$host.bcvcdn.com/hls/stream_$username/playlist.m3u8"
-        println("BongaCams master $username -> $master")
+        // straight through (same URL the lemoncams player uses).
+        println("BongaCams master $username -> $embed")
         callback.invoke(
             newExtractorLink(
                 source = "BongaCams",
                 name = "Auto",
-                url = master,
+                url = embed,
                 type = ExtractorLinkType.M3U8
             ) {
-                referer = REFERER
+                referer = ""
                 quality = Qualities.Unknown.value
-                headers = mapOf("User-Agent" to USER_AGENT, "Referer" to REFERER)
+                headers = mapOf("User-Agent" to USER_AGENT)
             }
         )
         return true
@@ -136,101 +134,49 @@ class BongaCamsProvider : MainAPI() {
 
     // ------------------------------------------------------- helpers
 
-    private data class RowSpec(val name: String, val category: String?)
-
-    private val rowSpecs = listOf(
-        RowSpec("All Female", null),
-        RowSpec("Arab", "arab"),
-        RowSpec("Asian", "asian"),
-        RowSpec("BBW", "bbw"),
-        RowSpec("BDSM", "bdsm"),
-        RowSpec("Big Tits", "big-tits"),
-        RowSpec("Blonde", "blonde"),
-        RowSpec("Brunette", "brunette"),
-        RowSpec("College Girls", "college-girls"),
-        RowSpec("Ebony", "ebony"),
-        RowSpec("Latina", "latina"),
-        RowSpec("Mature", "mature"),
-        RowSpec("Medium Tits", "medium-tits"),
-        RowSpec("MILF", "milf"),
-        RowSpec("Shaved Pussy", "shaved-pussy"),
-        RowSpec("Small Tits", "small-tits"),
-        RowSpec("Teens 18+", "teens-18"),
-        RowSpec("White Girls", "white-girls"),
-        RowSpec("Young", "young"),
-    )
-
     private fun Model.toSearchResponse(): SearchResponse =
-        newLiveSearchResponse(displayName?.takeIf { it.isNotBlank() } ?: username, roomUrl(username), TvType.Live) {
-            posterUrl = thumbUrl()
+        newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
+            posterUrl = posterUrl()
         }
 
-    private fun roomUrl(username: String) = "$BASE_URL/${username.lowercase()}"
+    private fun roomUrl(username: String) = "$mainUrl/${username.lowercase()}"
 
-    /** Look a model up in the shared cache, else refresh the all-female snapshot. */
+    /** Look a model up in the shared cache, else query the API for the username. */
     private suspend fun findModel(username: String): Model? {
         val wanted = username.lowercase()
         modelCache[wanted]?.let { return it }
-        return getAllFemale().firstOrNull { it.username.lowercase() == wanted }
+        val url = buildUrl(page = 1, filters = "query=${URLEncoder.encode(wanted, "utf8")}")
+        val text = fetch(url)
+        val models = parseJson<Response>(text)?.cams.orEmpty()
+        cacheAll(models)
+        return models.firstOrNull { it.username.lowercase() == wanted }
     }
 
-    /** One listing page for a row (category) + offset. */
-    private suspend fun fetchModels(category: String?, offset: Int): List<Model> {
-        val url = "$LISTING_URL?livetab=female&offset=$offset&limit=$PAGE_SIZE" +
-            (if (category.isNullOrBlank()) "" else "&category=${URLEncoder.encode(category, "utf8")}")
+    /** One lemoncams page for a row: base call + gender=female + the row filters. */
+    private suspend fun fetchModels(filters: String, page: Int): List<Model> {
+        val url = buildUrl(page = page, filters = filters)
         val text = fetch(url)
         if (text.isBlank()) return emptyList()
-        val models = parseJson<ListingResponse>(text)?.models
-            ?: parseJson<List<Model>>(text).orEmpty() // some builds return a bare array
-        if (models.isNotEmpty()) {
-            synchronized(modelLock) {
-                models.forEach { m -> modelCache[m.username.lowercase()] = m }
-            }
-        }
+        val models = parseJson<Response>(text)?.cams.orEmpty().filter { it.isReal }
+        cacheAll(models)
         return models
     }
 
-    /** Cached "all female" snapshot (for search + playback esid lookups). */
-    private suspend fun getAllFemale(): List<Model> {
-        synchronized(snapshotLock) {
-            if (snapshot.isNotEmpty() && System.currentTimeMillis() - snapshotAt < CACHE_TTL_MS) {
-                return snapshot
-            }
+    private fun cacheAll(models: List<Model>) {
+        if (models.isEmpty()) return
+        synchronized(modelLock) {
+            models.forEach { m -> modelCache[m.username.lowercase()] = m }
         }
-        var doFetch = false
-        val job = synchronized(snapshotLock) {
-            val pending = inflight
-            if (pending != null) {
-                pending
-            } else {
-                doFetch = true
-                CompletableDeferred<List<Model>>().also { inflight = it }
-            }
-        }
-        if (doFetch) {
-            val list = runCatching {
-                val collected = mutableListOf<Model>()
-                var emptyStreak = 0
-                for (page in 0 until MAX_PAGES) {
-                    val pageModels = fetchModels(null, page * PAGE_SIZE)
-                    if (pageModels.isEmpty()) {
-                        emptyStreak++
-                        if (emptyStreak >= 2) break
-                        continue
-                    }
-                    emptyStreak = 0
-                    collected.addAll(pageModels)
-                }
-                collected
-            }.getOrDefault(emptyList())
-            synchronized(snapshotLock) {
-                snapshot = list
-                snapshotAt = System.currentTimeMillis()
-                if (inflight === job) inflight = null
-            }
-            job.complete(list)
-        }
-        return job.await()
+    }
+
+    private fun buildUrl(page: Int, filters: String): String = buildString {
+        append(API_URL)
+        append("?page=").append(page)
+        append("&provider=").append(PROVIDER)
+        append("&function=cams")
+        append("&project=lemoncams")
+        append("&gender=female")
+        if (filters.isNotBlank()) append("&").append(filters)
     }
 
     // ------------------------------------------------------- low level fetch
@@ -245,9 +191,9 @@ class BongaCamsProvider : MainAPI() {
                     headers = mapOf(
                         "User-Agent" to USER_AGENT,
                         "Referer" to REFERER,
-                        "Accept" to "*/*",
-                        "Accept-Language" to "en-US,en;q=0.9",
-                        "X-Requested-With" to "XMLHttpRequest"
+                        "Origin" to ORIGIN,
+                        "Accept" to "application/json, text/plain, */*",
+                        "Accept-Language" to "en-US,en;q=0.9"
                     )
                 )
                 if (res.isSuccessful) {
@@ -271,7 +217,7 @@ class BongaCamsProvider : MainAPI() {
     }
 
     private inline fun <reified T : Any> parseJson(text: String): T? {
-        // Cloudflare serves an HTML challenge page instead of JSON.
+        // A non-JSON response means a challenge / error page - treat as empty.
         if (text.isBlank() || text.startsWith("<!DOCTYPE", ignoreCase = true) ||
             text.startsWith("<html", ignoreCase = true)
         ) {
@@ -280,7 +226,7 @@ class BongaCamsProvider : MainAPI() {
         return tryParseJson<T>(text)
     }
 
-    /** Minimum gap between bongacams.com requests, shared across providers. */
+    /** Minimum gap between lemoncams API requests, shared across providers. */
     private suspend fun pace() {
         val wait: Long
         synchronized(paceLock) {
@@ -293,67 +239,72 @@ class BongaCamsProvider : MainAPI() {
 
     // ------------------------------------------------------- JSON models
 
-    private data class ListingResponse(
-        @JsonProperty("models") val models: List<Model>? = null
+    private data class Response(
+        @JsonProperty("cams") val cams: List<Model>? = null,
+        @JsonProperty("size") val size: Int? = null,
+        @JsonProperty("maxPage") val maxPage: Int? = null
     )
 
     private data class Model(
         @JsonProperty("username") val username: String = "",
-        @JsonProperty("display_name") val displayName: String? = null,
-        @JsonProperty("thumb_image") val thumbImage: String? = null,
-        @JsonProperty("esid") val esid: String? = null,
-        @JsonProperty("viewers") val viewers: Int? = null,
+        @JsonProperty("numberOfUsers") val numberOfUsers: Int? = null,
+        @JsonProperty("gender") val gender: String? = null,
+        @JsonProperty("age") val age: Int? = null,
+        @JsonProperty("isHd") val isHd: Boolean = false,
+        @JsonProperty("isPrivate") val isPrivate: Boolean = false,
+        @JsonProperty("imageUrl") val imageUrl: String? = null,
+        @JsonProperty("title") val title: String? = null,
+        @JsonProperty("tags") val tags: List<String>? = null,
         @JsonProperty("country") val country: String? = null,
-        @JsonProperty("vq") val vq: String? = null
+        @JsonProperty("languages") val languages: List<String>? = null,
+        @JsonProperty("embedUrl") val embedUrl: String? = null
     ) {
-        // The listing sometimes embeds a "profile" ad entry - skip it.
         val isReal: Boolean get() = username.isNotBlank() && username.lowercase() != "profile"
 
-        /** thumb_image uses a `{ext}` placeholder and may be protocol-relative. */
-        fun thumbUrl(): String? {
-            val raw = thumbImage ?: return null
-            val withExt = raw.replace("{ext}", "webp")
-            return if (withExt.startsWith("//")) "https:$withExt" else withExt
+        /** Fix protocol-relative poster URLs. */
+        fun posterUrl(): String? {
+            val raw = imageUrl ?: return null
+            return if (raw.startsWith("//")) "https:$raw" else raw
         }
 
+        /** Room subject + current viewer count, when present. */
         fun plot(): String? = buildString {
-            viewers?.let { append("Watching: ").append(it) }
-            if (!country.isNullOrBlank()) {
-                if (isNotEmpty()) append("\n\n")
-                append("Country: ").append(country.uppercase())
+            title?.takeIf { it.isNotBlank() }?.let { append(it) }
+            numberOfUsers?.let {
+                if (it > 0) {
+                    if (isNotEmpty()) append("\n\n")
+                    append("Watching: ").append(it)
+                }
             }
         }.takeIf { it.isNotBlank() }
 
         fun tags(): List<String> = buildList {
             country?.takeIf { it.isNotBlank() }?.let { add(it.uppercase()) }
-            if (vq?.contains("1920x1080") == true) add("HD")
+            languages?.firstOrNull { it.isNotBlank() }?.let { add(it.uppercase()) }
+            age?.let { if (it > 0) add("Age $it") }
+            if (isHd) add("HD")
         }
     }
 
     companion object {
-        private const val BASE_URL = "https://bongacams.com"
-        private const val LISTING_URL = "$BASE_URL/tools/listing_v3.php"
-        private const val PAGE_SIZE = 140 // listing limit per request
-        private const val MAX_PAGES = 5 // all-female snapshot pages (~700 models)
-        private const val CACHE_TTL_MS = 90_000L // keep the snapshot this long
+        private const val API_URL = "https://api-v2-prod.lemoncams.com/main"
+        private const val PROVIDER = "bongacams"
+        private const val PAGE_SIZE = 36 // cams per page returned by the API
 
         private const val MIN_INTERVAL_MS = 350L // minimum gap between requests
         private const val RATE_LIMIT_PAUSE_MS = 2_500L // on HTTP 429
         private const val RETRY_PAUSE_MS = 800L // between failed attempts
 
-        private const val REFERER = "https://bongacams.com/"
+        private const val REFERER = "https://www.lemoncams.com/"
+        private const val ORIGIN = "https://www.lemoncams.com"
         private const val USER_AGENT = ("Mozilla/5.0 (X11; Linux x86_64; rv:150.0) "
             + "Gecko/20100101 Firefox/150.0")
 
         private val modelLock = Any()
-        private val snapshotLock = Any()
         private val paceLock = Any()
 
         private val modelCache = HashMap<String, Model>()
 
-        @Volatile private var snapshot: List<Model> = emptyList()
-        @Volatile private var snapshotAt = 0L
-        @Volatile private var inflight: CompletableDeferred<List<Model>>? = null
         @Volatile private var lastRequestAt = 0L
     }
 }

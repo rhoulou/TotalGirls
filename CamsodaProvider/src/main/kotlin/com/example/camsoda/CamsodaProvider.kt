@@ -9,41 +9,40 @@ import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import kotlinx.coroutines.delay
 import java.net.URLEncoder
-import kotlin.random.Random
 
 /**
  * CloudStream 3 provider for CamSoda live cams (girls only).
  *
- * Scrapes camsoda.com directly from the phone (no addon server), mirroring the
- * working camsoda.js / viewer.php scrapers and the site's own SPA calls:
+ * Data comes from the lemoncams.com open API instead of camsoda.com directly:
+ * camsoda.com's browse/react API is Cloudflare-protected, so we use the
+ * aggregator that mirrors the camsoda room list and already exposes the
+ * playable stream:
  *
- *   * Home rows -> GET /api/v1/browse/react/<path>?p=<page>&gender-hide=m,t,c
- *                  &perPage=98 (browser UA + Referer). The site filters
- *                  server-side by URL path, so every row (girls, girls/new,
- *                  girls/asian, ...) is one direct request, like the SPA does.
- *                  gender-hide=m,t,c keeps it strictly female (the site's girls
- *                  tab itself also hides couples when the category is clicked).
- *   * Search    -> GET /api/v1/browse/react/search/<query>?p=<page>&perPage=98
- *                  (same userList response as the browse call).
- *   * Stream    -> GET /api/v1/video/vtoken/<username>?username=guest_<n>
- *                  returns edge_servers / app / stream_name / token, from which
- *                  the live HLS master is built per server:
- *                  https://<server>/<app>/mp4:<stream_name>_mjpeg/playlist.m3u8
- *                  ?token=<token> (same template as CamsodaRecorder / streamlink).
- *                  The m3u8 is served to any client, so it is passed straight
- *                  to the player. Private shows / offline models yield no links.
- *   * Metadata  -> poster from the listing (offlinePictureUrl is the preview
- *                  image) - the profile pages are Cloudflare-protected, so no
- *                  dossier scraping.
+ *   * Room list -> GET https://api-v2-prod.lemoncams.com/main
+ *                  ?page=<n>&provider=camsoda&function=cams&project=lemoncams
+ *                  &gender=female[&category=<slug>|&haircolor=<slug>]
+ *                  (browser UA + lemoncams Referer). The response cams[] array
+ *                  carries the thumb, viewer count, country, age, tags and the
+ *                  direct HLS master (embedUrl).
+ *   * Stream    -> cam.embedUrl is the livemediahost LL-HLS master the
+ *                  lemoncams player itself uses
+ *                  (https://streaming-edge-front.livemediahost.com/<edge>/
+ *                  <stream>_v1/index.m3u8) - served to any client, so it is
+ *                  passed straight to the player. Private shows / offline
+ *                  models either lack embedUrl or simply fail to play.
+ *   * Search    -> the API supports ?query=<term>.
+ *   * Metadata  -> poster / title / viewers / country / age from the cam
+ *                  object (no profile-page scraping).
  *
- * Home rows: All Girls + the 18 curated categories mapped to the real
- * /girls/<slug> paths (anal, asian, bbw, big-ass, big-tits, dildo, ebony,
- * latina, lovense, mature, milf, new, petite, pornstar, squirt, teen-18,
- * top-rated, white).
+ * Home rows are all gender=female plus the aggregator's category / hair color
+ * filters: All Female, Asian, Big Dick, Big Tits, BDSM, Ebony, Hairy, Latina,
+ * Mature, MILF, Small Tits, Tattoo, Teen, Blonde, Brunette, Redhead. (Age and
+ * HD rows are skipped: camsoda reports age=0 and isHd=false for all models.)
  *
- * Robustness: browser-like headers, request pacing and HTTP 429 backoff, plus
- * graceful handling of the Cloudflare challenge page (non-JSON responses
- * become empty rows).
+ * Robustness: browser-like headers, request pacing and HTTP 429 backoff, a
+ * shared model cache (every listing response feeds it, so any model shown on
+ * the home page has its embedUrl available for playback), plus graceful
+ * handling of non-JSON responses (empty rows).
  */
 class CamsodaProvider : MainAPI() {
     override var mainUrl = "https://www.camsoda.com"
@@ -53,29 +52,27 @@ class CamsodaProvider : MainAPI() {
     override var vpnStatus = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "girls" to "All Girls",
-        "girls/new" to "New",
-        "girls/teen-18" to "Teen 18+",
-        "girls/milf" to "MILF",
-        "girls/mature" to "Mature",
-        "girls/petite" to "Petite",
-        "girls/bbw" to "BBW",
-        "girls/asian" to "Asian",
-        "girls/ebony" to "Ebony",
-        "girls/latina" to "Latina",
-        "girls/white" to "White",
-        "girls/big-tits" to "Big Tits",
-        "girls/big-ass" to "Big Ass",
-        "girls/anal" to "Anal",
-        "girls/squirt" to "Squirt",
-        "girls/dildo" to "Dildo",
-        "girls/lovense" to "Lovense",
-        "girls/top-rated" to "Top Rated",
-        "girls/pornstar" to "Pornstar",
+        "" to "All Female",
+        "category=asian" to "Asian",
+        "category=bigdick" to "Big Dick",
+        "category=bigtits" to "Big Tits",
+        "category=bdsm" to "BDSM",
+        "category=ebony" to "Ebony",
+        "category=hairy" to "Hairy",
+        "category=latina" to "Latina",
+        "category=mature" to "Mature",
+        "category=milf" to "MILF",
+        "category=smalltits" to "Small Tits",
+        "category=tattoo" to "Tattoo",
+        "category=teen" to "Teen 18+",
+        "haircolor=blonde" to "Blonde",
+        "haircolor=brunette" to "Brunette",
+        "haircolor=redhead" to "Redhead",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        // Each row is a direct server-side filtered request, paged via `p`.
+        // Each row is one server-side filtered request; the row's data string is
+        // the extra filter query (category=..., haircolor=..., ...).
         val items = fetchModels(request.data, page)
         return newHomePageResponse(
             HomePageList(request.name, items.map { it.toSearchResponse() }, isHorizontalImages = true),
@@ -84,24 +81,22 @@ class CamsodaProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        val results = mutableListOf<SearchResponse>()
-        for (page in 0 until MAX_SEARCH_PAGES) {
-            val items = fetchModels("search/${URLEncoder.encode(query, "utf8")}", page)
-            if (items.isEmpty()) break
-            val fresh = items.map { it.toSearchResponse() }
-            if (results.containsAll(fresh)) break // paged past the end -> same page again
-            results.addAll(fresh)
-        }
-        return results
+        val url = buildUrl(page = 1, filters = "query=${URLEncoder.encode(query, "utf8")}")
+        val text = fetch(url)
+        if (text.isBlank()) return emptyList()
+        val models = parseJson<Response>(text)?.cams.orEmpty().filter { it.isReal }
+        cacheAll(models)
+        return models.map { it.toSearchResponse() }
     }
 
     override suspend fun load(url: String): LoadResponse? {
         val username = url.trimEnd('/').substringAfterLast('/')
         if (username.isBlank()) return null
-        // No dossier scraping: the profile pages are Cloudflare-protected and
-        // the tile already carries the poster from the listing.
-        return newLiveStreamLoadResponse(username, url, url) {
-            plot = "CamSoda live show."
+        val model = findModel(username)
+        return newLiveStreamLoadResponse(model?.username?.takeIf { it.isNotBlank() } ?: username, url, url) {
+            posterUrl = model?.posterUrl()
+            plot = model?.plot()
+            tags = model?.tags()
         }
     }
 
@@ -113,70 +108,71 @@ class CamsodaProvider : MainAPI() {
     ): Boolean {
         val username = data.trimEnd('/').substringAfterLast('/')
         if (username.isBlank()) return false
-        val vtoken = fetchVToken(username) ?: return false
-        val streamName = vtoken.streamName
-        val token = vtoken.token
-        if (streamName.isBlank() || token.isBlank()) {
-            println("Camsoda $username -> offline (no stream config)")
-            return false
-        }
-        if (!vtoken.privateServers.orEmpty().isEmpty()) {
-            println("Camsoda $username -> private show, no public HLS")
-            return false
-        }
-        val servers = vtoken.edgeServers.orEmpty().ifEmpty {
-            vtoken.mjpegServer?.let { listOf(it) }.orEmpty()
-        }
-        if (servers.isEmpty()) {
-            println("Camsoda $username -> no edge servers")
-            return false
-        }
-        var emitted = 0
-        servers.forEachIndexed { i, server ->
-            // Same template as the CamsodaRecorder / streamlink extractors:
-            // the _mjpeg playlist is the public variant master.
-            val master = "https://$server/${vtoken.app}/mp4:${streamName}_mjpeg/playlist.m3u8?token=$token"
-            println("Camsoda master $username -> $master")
-            callback.invoke(
-                newExtractorLink(
-                    source = "Camsoda",
-                    name = "Server ${i + 1}",
-                    url = master,
-                    type = ExtractorLinkType.M3U8
-                ) {
-                    referer = REFERER
-                    quality = Qualities.Unknown.value
-                    headers = mapOf("User-Agent" to USER_AGENT, "Referer" to REFERER)
-                }
-            )
-            emitted++
-        }
-        return emitted > 0
+        val model = findModel(username)
+        val embed = model?.embedUrl?.takeIf { it.isNotBlank() } ?: return false
+        // The livemediahost edge serves the master to any client, so it can be
+        // passed straight through (same URL the lemoncams player uses).
+        println("Camsoda master $username -> $embed")
+        callback.invoke(
+            newExtractorLink(
+                source = "Camsoda",
+                name = "Auto",
+                url = embed,
+                type = ExtractorLinkType.M3U8
+            ) {
+                referer = ""
+                quality = Qualities.Unknown.value
+                headers = mapOf("User-Agent" to USER_AGENT)
+            }
+        )
+        return true
     }
 
     // ------------------------------------------------------- helpers
 
     private fun Model.toSearchResponse(): SearchResponse =
-        newLiveSearchResponse(displayName?.takeIf { it.isNotBlank() } ?: username, roomUrl(username), TvType.Live) {
+        newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
             posterUrl = posterUrl()
         }
 
-    private fun roomUrl(username: String) = "$BASE_URL/$username"
+    private fun roomUrl(username: String) = "$mainUrl/$username"
 
-    /** One browse/search page. `path` is like "girls/new" or "search/<query>". */
-    private suspend fun fetchModels(path: String, page: Int): List<Model> {
-        val url = "$BROWSE_URL/$path?p=$page&gender-hide=$GENDER_HIDE&perPage=$PAGE_SIZE"
+    /** Look a model up in the shared cache, else query the API for the username. */
+    private suspend fun findModel(username: String): Model? {
+        val wanted = username.lowercase()
+        modelCache[wanted]?.let { return it }
+        val url = buildUrl(page = 1, filters = "query=${URLEncoder.encode(wanted, "utf8")}")
         val text = fetch(url)
-        if (text.isBlank()) return emptyList()
-        return parseJson<Response>(text)?.userList.orEmpty().filter { it.isReal }
+        val models = parseJson<Response>(text)?.cams.orEmpty()
+        cacheAll(models)
+        return models.firstOrNull { it.username.lowercase() == wanted }
     }
 
-    private suspend fun fetchVToken(username: String): VToken? {
-        val guest = Random.nextInt(10000, 99999)
-        val url = "$BASE_URL/api/v1/video/vtoken/$username?username=guest_$guest"
+    /** One lemoncams page for a row: base call + gender=female + the row filters. */
+    private suspend fun fetchModels(filters: String, page: Int): List<Model> {
+        val url = buildUrl(page = page, filters = filters)
         val text = fetch(url)
-        if (text.isBlank()) return null
-        return parseJson<VToken>(text)
+        if (text.isBlank()) return emptyList()
+        val models = parseJson<Response>(text)?.cams.orEmpty().filter { it.isReal }
+        cacheAll(models)
+        return models
+    }
+
+    private fun cacheAll(models: List<Model>) {
+        if (models.isEmpty()) return
+        synchronized(modelLock) {
+            models.forEach { m -> modelCache[m.username.lowercase()] = m }
+        }
+    }
+
+    private fun buildUrl(page: Int, filters: String): String = buildString {
+        append(API_URL)
+        append("?page=").append(page)
+        append("&provider=").append(PROVIDER)
+        append("&function=cams")
+        append("&project=lemoncams")
+        append("&gender=female")
+        if (filters.isNotBlank()) append("&").append(filters)
     }
 
     // ------------------------------------------------------- low level fetch
@@ -191,7 +187,8 @@ class CamsodaProvider : MainAPI() {
                     headers = mapOf(
                         "User-Agent" to USER_AGENT,
                         "Referer" to REFERER,
-                        "Accept" to "*/*",
+                        "Origin" to ORIGIN,
+                        "Accept" to "application/json, text/plain, */*",
                         "Accept-Language" to "en-US,en;q=0.9"
                     )
                 )
@@ -216,7 +213,7 @@ class CamsodaProvider : MainAPI() {
     }
 
     private inline fun <reified T : Any> parseJson(text: String): T? {
-        // Cloudflare serves an HTML challenge page instead of JSON.
+        // A non-JSON response means a challenge / error page - treat as empty.
         if (text.isBlank() || text.startsWith("<!DOCTYPE", ignoreCase = true) ||
             text.startsWith("<html", ignoreCase = true)
         ) {
@@ -225,7 +222,7 @@ class CamsodaProvider : MainAPI() {
         return tryParseJson<T>(text)
     }
 
-    /** Minimum gap between camsoda.com requests, shared across providers. */
+    /** Minimum gap between lemoncams API requests, shared across providers. */
     private suspend fun pace() {
         val wait: Long
         synchronized(paceLock) {
@@ -239,52 +236,70 @@ class CamsodaProvider : MainAPI() {
     // ------------------------------------------------------- JSON models
 
     private data class Response(
-        @JsonProperty("userList") val userList: List<Model>? = null
+        @JsonProperty("cams") val cams: List<Model>? = null,
+        @JsonProperty("size") val size: Int? = null,
+        @JsonProperty("maxPage") val maxPage: Int? = null
     )
 
     private data class Model(
         @JsonProperty("username") val username: String = "",
-        @JsonProperty("displayName") val displayName: String? = null,
-        @JsonProperty("thumbUrl") val thumbUrl: String? = null,
-        @JsonProperty("offlinePictureUrl") val offlinePictureUrl: String? = null,
-        @JsonProperty("status") val status: String? = null
+        @JsonProperty("numberOfUsers") val numberOfUsers: Int? = null,
+        @JsonProperty("gender") val gender: String? = null,
+        @JsonProperty("age") val age: Int? = null,
+        @JsonProperty("isHd") val isHd: Boolean = false,
+        @JsonProperty("isPrivate") val isPrivate: Boolean = false,
+        @JsonProperty("imageUrl") val imageUrl: String? = null,
+        @JsonProperty("title") val title: String? = null,
+        @JsonProperty("tags") val tags: List<String>? = null,
+        @JsonProperty("country") val country: String? = null,
+        @JsonProperty("languages") val languages: List<String>? = null,
+        @JsonProperty("embedUrl") val embedUrl: String? = null
     ) {
-        // The listing can embed ad / profile entries - skip them.
         val isReal: Boolean get() = username.isNotBlank() && username.lowercase() != "profile"
 
-        /** Prefer the preview image, fall back to the thumb; fix protocol-relative URLs. */
+        /** Fix protocol-relative poster URLs. */
         fun posterUrl(): String? {
-            val raw = offlinePictureUrl?.takeIf { it.isNotBlank() } ?: thumbUrl
-            return if (raw.isNullOrBlank()) null
-            else if (raw.startsWith("//")) "https:$raw" else raw
+            val raw = imageUrl ?: return null
+            return if (raw.startsWith("//")) "https:$raw" else raw
+        }
+
+        /** Room subject + current viewer count, when present. */
+        fun plot(): String? = buildString {
+            title?.takeIf { it.isNotBlank() }?.let { append(it) }
+            numberOfUsers?.let {
+                if (it > 0) {
+                    if (isNotEmpty()) append("\n\n")
+                    append("Watching: ").append(it)
+                }
+            }
+        }.takeIf { it.isNotBlank() }
+
+        fun tags(): List<String> = buildList {
+            country?.takeIf { it.isNotBlank() }?.let { add(it.uppercase()) }
+            languages?.firstOrNull { it.isNotBlank() }?.let { add(it.uppercase()) }
+            age?.let { if (it > 0) add("Age $it") }
+            if (isHd) add("HD")
         }
     }
 
-    private data class VToken(
-        @JsonProperty("edge_servers") val edgeServers: List<String>? = null,
-        @JsonProperty("private_servers") val privateServers: List<String>? = null,
-        @JsonProperty("mjpeg_server") val mjpegServer: String? = null,
-        @JsonProperty("app") val app: String = "",
-        @JsonProperty("stream_name") val streamName: String = "",
-        @JsonProperty("token") val token: String = ""
-    )
-
     companion object {
-        private const val BASE_URL = "https://www.camsoda.com"
-        private const val BROWSE_URL = "$BASE_URL/api/v1/browse/react"
-        private const val GENDER_HIDE = "m,t,c" // strictly female (hide male/trans/couples)
-        private const val PAGE_SIZE = 98 // listing perPage used by the site
-        private const val MAX_SEARCH_PAGES = 4
+        private const val API_URL = "https://api-v2-prod.lemoncams.com/main"
+        private const val PROVIDER = "camsoda"
+        private const val PAGE_SIZE = 36 // cams per page returned by the API
 
         private const val MIN_INTERVAL_MS = 350L // minimum gap between requests
         private const val RATE_LIMIT_PAUSE_MS = 2_500L // on HTTP 429
         private const val RETRY_PAUSE_MS = 800L // between failed attempts
 
-        private const val REFERER = "https://www.camsoda.com/"
+        private const val REFERER = "https://www.lemoncams.com/"
+        private const val ORIGIN = "https://www.lemoncams.com"
         private const val USER_AGENT = ("Mozilla/5.0 (X11; Linux x86_64; rv:150.0) "
             + "Gecko/20100101 Firefox/150.0")
 
+        private val modelLock = Any()
         private val paceLock = Any()
+
+        private val modelCache = HashMap<String, Model>()
 
         @Volatile private var lastRequestAt = 0L
     }

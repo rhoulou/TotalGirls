@@ -1,9 +1,9 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 1
+version = 3
 
 cloudstream {
     language = "en"
-    description = "Live CamSoda cams. Scrapes camsoda.com directly from the phone - browse/react category listing (girls only), vtoken HLS master passed to the player."
+    description = "Live CamSoda cams (girls only). Lists via the open lemoncams.com API - no Cloudflare cookie wall - and passes the livemediahost LL-HLS master straight to the player."
     authors = listOf("rhoulou")
 
     /**
@@ -16,5 +16,5 @@ cloudstream {
     status = 3 // beta until you are happy with it
     tvTypes = listOf("Live")
 
-    iconUrl = "https://rhoulou.github.io/cloudstream/camsoda.png"
+    iconUrl = "https://webcamstartup.com/wp-content/uploads/2024/05/PPe3W893RXS7AG2MoYGd_St6ScIFr05xhO0zJ.jpg"
 }
