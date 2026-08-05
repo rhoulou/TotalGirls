@@ -43,7 +43,7 @@ import java.net.URLEncoder
  */
 class Cam4Provider : MainAPI() {
     override var mainUrl = "https://www.cam4.com"
-    override var name = "Cam4"
+    override var name = "Cam4 Girls"
     override val supportedTypes = setOf(TvType.Live)
     override val hasMainPage = true
     override var vpnStatus = VPNStatus.MightBeNeeded
