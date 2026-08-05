@@ -1,11 +1,12 @@
 # Cam plugins - CloudStream 3
 
-Live cam plugins (18+) for **CloudStream 3**: **Chaturbate**, **Stripchat** and
-**Cam4** (girls only). They **scrape the sites directly from the phone** — no
-addon server needed. The Kotlin ports mirror the battle-tested client logic from
-the Node addons (`Streamio/Chaturbate`, `Streamio/Stripchat`) and the
-`punpunsx/cloudstream-18plus-Extensions` Cam4 provider: roomlist snapshots,
-cookie jar, request pacing, HTTP 429 backoff and Cloudflare detection.
+Live cam plugins (18+) for **CloudStream 3**: **Chaturbate**, **Stripchat**,
+**Cam4** and **BongaCams** (girls only). They **scrape the sites directly from
+the phone** — no addon server needed. The Kotlin ports mirror the battle-tested
+client logic from the Node addons (`Streamio/Chaturbate`, `Streamio/Stripchat`)
+and the `punpunsx/cloudstream-18plus-Extensions` Cam4 provider plus the working
+`bongacams.js` / `viewer.php` scrapers: roomlist snapshots, cookie jar, request
+pacing, HTTP 429 backoff and Cloudflare detection.
 
 Each plugin provides the **Girls** category (female cams plus a Couples row on
 the home page); the Guys and Trans categories are deliberately left out.
@@ -82,6 +83,30 @@ Pages.)
   the `hlsPreviewUrl` master; master, variant and segments all serve 200 to any
   client, so the master is passed straight to the player.
 
+### BongaCams
+
+- **Homepage**: female-only category rows — All Female plus the 18 listing
+  categories (Arab, Asian, BBW, BDSM, Big Tits, Blonde, Brunette, College
+  Girls, Ebony, Latina, Mature, Medium Tits, MILF, Shaved Pussy, Small Tits,
+  Teens 18+, White Girls, Young). Each row is a server-side `category=` filter
+  of the listing endpoint `/tools/listing_v3.php?livetab=female&limit=140&
+  offset=<n>` (browser UA + Referer + `X-Requested-With: XMLHttpRequest`),
+  paged with `offset`.
+- **Search**: no listing search param exists, so the cached "all female"
+  snapshot (up to 5 pages, 90s cache) is filtered client-side by username /
+  display name.
+- **Detail / playback**: metadata (poster, viewers, country) comes from the
+  cached listing (the profile pages are Cloudflare-protected, so no dossier).
+  The live HLS master is built from the listing's `esid` the same way as the
+  working scraper:
+  `https://<esid>-rn.bcvcdn.com/hls/stream_<username>/playlist.m3u8` — the
+  bcvcdn edge serves it to any client, so the master is passed straight to the
+  player.
+- **Cloudflare note**: `bongacams.com` challenges datacenter IPs. The listing
+  endpoint works from a residential/mobile IP with browser headers; when the
+  site answers with its challenge page the provider returns empty rows instead
+  of crashing.
+
 ## Build the .cs3 plugin
 
 You need **Android Studio** (or a JDK 11+ with the Android SDK and Gradle):
@@ -106,7 +131,7 @@ GitHub Pages always serves the latest build.
 repo.json                  CloudStream repository descriptor (manifestVersion 1)
 plugins.json               Plugin list (one entry per .cs3 file)
 build.gradle.kts           Root build script (Cloudstream gradle plugin)
-settings.gradle.kts        Includes ChaturbateProvider + StripchatProvider + Cam4Provider
+settings.gradle.kts        Includes ChaturbateProvider + StripchatProvider + Cam4Provider + BongaCamsProvider
 .github/workflows/build.yml   Builds + commits the .cs3 on push
 gradle.properties
 gradle/wrapper/            Gradle wrapper properties
@@ -125,6 +150,11 @@ Cam4Provider/              Cam4 plugin (.cs3)
   src/main/kotlin/com/example/cam4/
     Cam4Provider.kt           Direct-scrape provider (GraphQL categories + directory)
     Cam4ProviderPlugin.kt     Registers the provider (female category rows)
+BongaCamsProvider/         BongaCams plugin (.cs3)
+  build.gradle.kts         Plugin metadata
+  src/main/kotlin/com/example/bongacams/
+    BongaCamsProvider.kt      Direct-scrape provider (listing_v3 categories + bcvcdn master)
+    BongaCamsProviderPlugin.kt   Registers the provider (female category rows)
 ```
 
 ## Notes

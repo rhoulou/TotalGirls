@@ -1,6 +1,6 @@
 {
-    "name": "Cam Plugins (Chaturbate + Stripchat + Cam4)",
-    "description": "Live cam plugins for CloudStream 3 (Chaturbate, Stripchat, Cam4)",
+    "name": "Cam Plugins (Chaturbate + Stripchat + Cam4 + BongaCams)",
+    "description": "Live cam plugins for CloudStream 3 (Chaturbate, Stripchat, Cam4, BongaCams)",
     "manifestVersion": 1,
     "pluginLists": [
         "https://rhoulou.github.io/cloudstream/plugins.json"
