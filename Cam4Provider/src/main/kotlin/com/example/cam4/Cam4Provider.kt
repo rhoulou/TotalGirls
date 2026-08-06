@@ -81,11 +81,16 @@ class Cam4Provider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        val url = "$BASE_URL/api/directoryCams?directoryJson=true&online=true" +
-            "&search=${URLEncoder.encode(query, "utf8")}&resultsPerPage=$PAGE_SIZE"
-        // The search endpoint returns a bare JSON array of users.
-        val users = fetchJson<List<User>>(url).orEmpty()
-        return users.map { it.toSearchResponse() }
+        // /api/directoryCams?search= ignores its search param; the site's own
+        // lookup is /rest/v1.0/search/performer/<name> (fuzzy best match).
+        val url = "$BASE_URL/rest/v1.0/search/performer/${URLEncoder.encode(query, "utf8")}"
+        val performer = fetchJson<PerformerSearch>(url) ?: return null
+        if (performer.online != true) return null
+        return listOf(
+            newLiveSearchResponse(performer.username, roomUrl(performer.username), TvType.Live) {
+                posterUrl = performer.profileImageUrl
+            }
+        )
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -150,11 +155,6 @@ class Cam4Provider : MainAPI() {
     private fun Item.toSearchResponse(): SearchResponse =
         newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
             posterUrl = profileImageURL
-        }
-
-    private fun User.toSearchResponse(): SearchResponse =
-        newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
-            posterUrl = snapshotImageLink
         }
 
     private fun roomUrl(username: String) = "$BASE_URL/$username"
@@ -302,6 +302,15 @@ class Cam4Provider : MainAPI() {
     private data class DirectoryResponse(
         @JsonProperty("totalCount") val totalCount: Long? = null,
         @JsonProperty("users") val users: List<User>? = null
+    )
+
+    /** /rest/v1.0/search/performer/<name> lookup (fuzzy best match). */
+    private data class PerformerSearch(
+        @JsonProperty("username") val username: String = "",
+        @JsonProperty("gender") val gender: String? = null,
+        @JsonProperty("country") val country: String? = null,
+        @JsonProperty("online") val online: Boolean? = null,
+        @JsonProperty("profileImageUrl") val profileImageUrl: String? = null
     )
 
     private data class User(
