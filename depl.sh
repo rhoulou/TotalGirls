@@ -49,8 +49,8 @@ for p in "${PROVIDERS[@]}"; do
     cp "$p/build/$p.cs3" "$p.cs3"
 done
 
-echo "== Recording file sizes + sha256 hashes =="
-python3 - <<'PY'
+write_hashes() {
+    python3 - <<'PY'
 import hashlib, json
 with open("plugins.json") as f:
     data = json.load(f)
@@ -66,6 +66,10 @@ with open("plugins.json", "w") as f:
     json.dump(data, f, indent=4)
     f.write("\n")
 PY
+}
+
+echo "== Recording file sizes + sha256 hashes =="
+write_hashes
 
 echo "== Verifying manifests =="
 for p in "${PROVIDERS[@]}"; do
@@ -78,14 +82,33 @@ for p in "${PROVIDERS[@]}"; do
 done
 
 push() {
-    git push origin main 2>/dev/null && return 0
-    git pull --rebase origin main 2>&1 | tail -2 || true
-    for f in "${PROVIDERS[@]}"; do
-        git checkout --ours "$f.cs3" 2>/dev/null || true
+    for attempt in $(seq 1 5); do
+        if git push origin main 2>/dev/null; then return 0; fi
+        echo "  push rejected (attempt $attempt); syncing with origin..."
+        git fetch origin main
+        git pull --rebase origin main 2>&1 | tail -1 || true
+        if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+            # Rebase in progress: the CI workflow only ever auto-commits *.cs3
+            # artifacts, so regenerate them from our source build and recompute
+            # plugins.json so the tree stays self-consistent.
+            for f in "${PROVIDERS[@]}"; do
+                cp "$f/build/$f.cs3" "$f.cs3"
+            done
+            write_hashes
+            git add -A
+            if ! GIT_EDITOR=true git rebase --continue 2>&1 | tail -1; then
+                echo "ERROR: rebase conflicts not resolvable (source changed upstream?)" >&2
+                git rebase --abort 2>/dev/null || true
+                return 1
+            fi
+        fi
+        git add -A
+        if ! git diff --cached --quiet; then
+            git commit --amend --no-edit 2>/dev/null || git commit -m "rebuild plugins"
+        fi
     done
-    git add -A
-    GIT_EDITOR=true git rebase --continue 2>/dev/null || true
-    git push origin main
+    echo "ERROR: push failed after 5 attempts" >&2
+    return 1
 }
 
 commit() {
