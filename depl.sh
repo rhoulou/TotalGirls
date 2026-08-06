@@ -43,10 +43,6 @@ echo "== Building ${PROVIDERS[*]} =="
 export ANDROID_HOME
 "$GRADLE" --no-daemon "${tasks[@]}"
 
-for p in "${PROVIDERS[@]}"; do
-    cp "$p/build/$p.cs3" "$p.cs3"
-done
-
 write_hashes() {
     python3 - <<'PY'
 import hashlib, json
@@ -60,14 +56,24 @@ for p in data:
         p["fileHash"] = "sha256-" + hashlib.sha256(blob).hexdigest()
     except FileNotFoundError:
         pass
+    # Version the cs3 url so CDNs / app caches can never serve stale bytes
+    p["url"] = p["url"].rsplit("/", 1)[0] + f"/{p['internalName']}_{p['version']}.cs3"
 with open("plugins.json", "w") as f:
     json.dump(data, f, indent=4)
     f.write("\n")
 PY
 }
 
-echo "== Recording file sizes + sha256 hashes =="
-write_hashes
+stage_artifacts() {
+    for f in "${PROVIDERS[@]}"; do
+        cp "$f/build/$f.cs3" "$f.cs3"
+        cp "$f/build/$f.cs3" "${f}_${EXPECTED}.cs3"
+    done
+    write_hashes
+}
+
+echo "== Recording file sizes + sha256 hashes (versioned urls) =="
+stage_artifacts
 
 echo "== Verifying manifests =="
 for p in "${PROVIDERS[@]}"; do
@@ -89,10 +95,7 @@ push() {
             # Rebase in progress: the CI workflow only ever auto-commits *.cs3
             # artifacts, so regenerate them from our source build and recompute
             # plugins.json so the tree stays self-consistent.
-            for f in "${PROVIDERS[@]}"; do
-                cp "$f/build/$f.cs3" "$f.cs3"
-            done
-            write_hashes
+            stage_artifacts
             git add -A
             if ! GIT_EDITOR=true git rebase --continue 2>&1 | tail -1; then
                 echo "ERROR: rebase conflicts not resolvable (source changed upstream?)" >&2
@@ -124,6 +127,25 @@ echo "== Committing and pushing =="
 commit
 push
 
+verify_served() {
+    SITE_URL="$SITE_URL" EXPECTED="$EXPECTED" python3 - <<'PY'
+import json, os, urllib.request, hashlib
+base = os.environ["SITE_URL"]
+expected = int(os.environ["EXPECTED"])
+names = ('BongaCamsProvider', 'CamsodaProvider', 'Cam4Provider', 'ChaturbateProvider', 'StripchatProvider')
+pj = json.load(urllib.request.urlopen(base + "/plugins.json", timeout=30))
+for p in pj:
+    if p['internalName'] not in names:
+        continue
+    blob = urllib.request.urlopen(p['url'], timeout=30).read()
+    h = "sha256-" + hashlib.sha256(blob).hexdigest()
+    if p['version'] != expected or h != p['fileHash'] or len(blob) != p['fileSize']:
+        print(f"ERROR: {p['internalName']} served bytes inconsistent")
+        raise SystemExit(1)
+print("Served cs3 bytes match plugins.json hashes for all providers")
+PY
+}
+
 echo "== Waiting for raw.githubusercontent.com to serve version $EXPECTED =="
 # raw.githubusercontent.com serves git main directly - the new version is
 # visible as soon as the push propagates (seconds, no deploy pipeline).
@@ -139,6 +161,7 @@ try:
 except Exception:
     sys.exit(1)"; then
         echo "Live on raw: all providers at v$EXPECTED"
+        verify_served
         exit 0
     fi
 done

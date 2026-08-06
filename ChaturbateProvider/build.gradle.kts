@@ -1,5 +1,5 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 11
+version = 12
 
 cloudstream {
     language = "en"
