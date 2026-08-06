@@ -82,13 +82,16 @@ class Cam4Provider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse>? {
         // /api/directoryCams?search= ignores its search param; the site's own
-        // lookup is /rest/v1.0/search/performer/<name> (fuzzy best match).
+        // lookup is /rest/v1.0/search/performer/<name> (fuzzy best match). Show
+        // the match even when offline so the queried model always appears.
         val url = "$BASE_URL/rest/v1.0/search/performer/${URLEncoder.encode(query, "utf8")}"
         val performer = fetchJson<PerformerSearch>(url) ?: return null
-        if (performer.online != true) return null
+        // search/performer only yields a (often default) profile image, so do a
+        // directory lookup for the real live snapshot poster when available.
+        val user = fetchUser(performer.username)
         return listOf(
             newLiveSearchResponse(performer.username, roomUrl(performer.username), TvType.Live) {
-                posterUrl = performer.profileImageUrl
+                posterUrl = user?.posterUrl() ?: performer.profileImageUrl
             }
         )
     }
