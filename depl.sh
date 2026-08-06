@@ -86,11 +86,13 @@ commit
 push
 
 echo "== Waiting for GitHub Pages deploy (version $EXPECTED) =="
-for attempt in 1 2 3 4 5; do
-    for _ in $(seq 1 12); do
-        sleep 15
-        if curl -sk --max-time 20 "$SITE_URL/plugins.json" | \
-           python3 -c "import json,sys
+# Never re-trigger by pushing empty commits here: every push cancels the
+# in-flight Pages deployment. The custom pages workflow deploys in ~1-2 min,
+# so just poll quietly until it goes live.
+for _ in $(seq 1 48); do
+    sleep 15
+    if curl -sk --max-time 20 "$SITE_URL/plugins.json" | \
+       python3 -c "import json,sys
 try:
     v=$EXPECTED
     d=json.load(sys.stdin)
@@ -98,14 +100,10 @@ try:
     sys.exit(0 if len(ok)==2 else 1)
 except Exception:
     sys.exit(1)"; then
-            echo "Deploy live: both providers at v$EXPECTED"
-            exit 0
-        fi
-    done
-    echo "Deploy not live yet (attempt $attempt) - re-triggering"
-    git commit --allow-empty -m "chore: re-trigger Pages deploy (v$EXPECTED)" 2>/dev/null || true
-    push
+        echo "Deploy live: both providers at v$EXPECTED"
+        exit 0
+    fi
 done
 
-echo "ERROR: Pages deploy still not live after retries" >&2
+echo "ERROR: Pages deploy not live after 12 minutes" >&2
 exit 1
