@@ -21,22 +21,28 @@ import kotlin.math.ceil
  *
  *   * Room list -> PROXY(https://bongacams.com/tools/listing_v3.php
  *                  ?online_only=1&limit=<n>&offset=<m>&c[]=female
- *                  &model_search[base_sort]=popular)
+ *                  &model_search[base_sort]=popular
+ *                  [&model_search[category]=<slug>])
  *                  returns {status, total_count, models:[{username,
  *                  display_name, gender, vq, viewers, esid, thumb_image, ...}]}.
- *                  Only gender (c[]=female) and model_search[display_name][text]
- *                  are honoured server-side; category params are ignored, so
- *                  rows are client-side filters over the full female listing.
- *   * Stream    -> https://{esid}.bcvcdn.com/hls/stream_<user>/playlist.m3u8
- *                  - the bcvcdn edge the site uses, served to any client, so it
- *                  is passed straight to the player (no proxy).
+ *                  gender (c[]=female) and display_name search are honoured
+ *                  server-side; model_search[category]=<slug> also filters by
+ *                  category (asian, ebony, latina, mature, bbw, petite, curvy,
+ *                  anal, lesbian, big-tits, small-tits, squirt, blonde,
+ *                  brunette, redhead). HD is NOT a category - it stays a
+ *                  client-side vq filter over the full female listing.
+ *   * Stream    -> https://{esid}.bcvcdn.com/hls/stream_<User>/playlist.m3u8
+ *                  where <User> keeps the exact case the API reports (the path
+ *                  is case-sensitive); the bcvcdn edge the site uses, served to
+ *                  any client, so it is passed straight to the player (no proxy).
  *   * Search    -> listing_v3?model_search[display_name][text]=<q> - matches
  *                  the model's real username / display name from the API.
  *
- * Home rows: All Female, HD (client-side vq filter).
- * Robustness: request pacing, HTTP 429 backoff, retries, a cached full listing
- * (every row paginates over it locally), a shared model cache for playback, and
- * graceful handling of non-JSON responses (empty rows).
+ * Home rows: All Female, HD (client-side), plus the server-side category slugs
+ * listed above (each row paginates over its own cached listing).
+ * Robustness: request pacing, HTTP 429 backoff, retries, cached listings per
+ * category, a shared model cache for playback, and graceful handling of
+ * non-JSON responses (empty rows).
  */
 class BongaCamsProvider : MainAPI() {
     override var mainUrl = "https://bongacams.com"
@@ -48,12 +54,29 @@ class BongaCamsProvider : MainAPI() {
     override val mainPage = mainPageOf(
         "" to "All Female",
         "hd" to "HD",
+        "asian" to "Asian",
+        "ebony" to "Ebony",
+        "latina" to "Latina",
+        "mature" to "Mature",
+        "bbw" to "BBW",
+        "petite" to "Petite",
+        "curvy" to "Curvy",
+        "anal" to "Anal",
+        "lesbian" to "Lesbian",
+        "big-tits" to "Big Tits",
+        "small-tits" to "Small Tits",
+        "squirt" to "Squirt",
+        "blonde" to "Blonde",
+        "brunette" to "Brunette",
+        "redhead" to "Redhead",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        val all = fullListing()
+        // Category rows fetch their own server-side listing; HD is a
+        // client-side vq filter over the full female listing.
+        val all = fullListing(if (request.data == "hd") "" else request.data)
         val offset = (page - 1) * PAGE_SIZE
-        val filtered = all.filter { it.matchesRow(request.data) }
+        val filtered = if (request.data == "hd") all.filter { it.isHd() } else all
         val slice = filtered.drop(offset).take(PAGE_SIZE)
         return newHomePageResponse(
             HomePageList(request.name, slice.map { it.toSearchResponse() }, isHorizontalImages = false),
@@ -66,7 +89,7 @@ class BongaCamsProvider : MainAPI() {
         // gender filter, so a model's real name is always matched regardless
         // of the room's current gender.
         val encoded = URLEncoder.encode(query, "utf8")
-        val url = proxyUrl(buildListingUrl("model_search[display_name][text]=$encoded", 0, gender = ""))
+        val url = proxyUrl(buildListingUrl("", "model_search[display_name][text]=$encoded", 0, gender = ""))
         val text = fetch(url)
         if (text.isBlank()) return null
         val models = parseJson<ListingResponse>(text)?.models.orEmpty().filter { it.isReal }
@@ -96,8 +119,10 @@ class BongaCamsProvider : MainAPI() {
         val model = findModel(username) ?: return false
         val esid = model.esid?.takeIf { it.isNotBlank() } ?: return false
         // The bcvcdn edge serves the master to any client, so it can be passed
-        // straight through (no proxy needed for playback).
-        val hls = "https://$esid.bcvcdn.com/hls/stream_$username/playlist.m3u8"
+        // straight through (no proxy needed for playback). The stream path is
+        // case-sensitive, so use the exact-case name the API reports - not the
+        // lowercased room URL (a lowercase path 404s -> player error 2004).
+        val hls = "https://$esid.bcvcdn.com/hls/stream_${model.username}/playlist.m3u8"
         println("BongaCams master $username -> $hls")
         callback.invoke(
             newExtractorLink(
@@ -124,29 +149,23 @@ class BongaCamsProvider : MainAPI() {
 
     private fun roomUrl(username: String) = "$mainUrl/${username.lowercase()}"
 
-    private fun Model.matchesRow(row: String): Boolean = when (row) {
-        "", "all" -> true
-        "hd" -> isHd()
-        else -> true
-    }
-
     private fun Model.isHd(): Boolean {
         val v = vq.orEmpty()
         return v.contains("1080") || v.contains("2160") || v.contains("hd") || v.contains("high")
     }
 
-    /** Full online female listing, cached briefly; every row pages over it. */
-    private suspend fun fullListing(): List<Model> {
+    /** Online female listing for a category ("" = all), cached briefly. */
+    private suspend fun fullListing(category: String): List<Model> {
         synchronized(listLock) {
-            if (allModels.isNotEmpty() && System.currentTimeMillis() - listFetchedAt < LIST_TTL_MS) {
-                return allModels
+            listings[category]?.let { list ->
+                if (System.currentTimeMillis() - (listingFetchedAt[category] ?: 0L) < LIST_TTL_MS) return list
             }
         }
         val collected = ArrayList<Model>()
         var offset = 0
         var total = Int.MAX_VALUE
         while (offset < total && offset < MAX_SCAN) {
-            val url = proxyUrl(buildListingUrl("", offset, "female"))
+            val url = proxyUrl(buildListingUrl(category, "", offset, "female"))
             val text = fetch(url)
             if (text.isBlank()) break
             val parsed = parseJson<ListingResponse>(text) ?: break
@@ -158,10 +177,10 @@ class BongaCamsProvider : MainAPI() {
             offset += page.size
         }
         if (collected.isEmpty()) return emptyList()
-        println("BongaCams listing -> ${collected.size} online female models")
+        println("BongaCams listing[$category] -> ${collected.size} online female models")
         synchronized(listLock) {
-            allModels = collected
-            listFetchedAt = System.currentTimeMillis()
+            listings[category] = collected
+            listingFetchedAt[category] = System.currentTimeMillis()
         }
         return collected
     }
@@ -171,7 +190,7 @@ class BongaCamsProvider : MainAPI() {
         val wanted = username.lowercase()
         modelCache[wanted]?.let { return it }
         val encoded = URLEncoder.encode(wanted, "utf8")
-        val url = proxyUrl(buildListingUrl("model_search[display_name][text]=$encoded", 0, gender = ""))
+        val url = proxyUrl(buildListingUrl("", "model_search[display_name][text]=$encoded", 0, gender = ""))
         val text = fetch(url)
         if (text.isBlank()) return null
         val models = parseJson<ListingResponse>(text)?.models.orEmpty().filter { it.isReal }
@@ -179,15 +198,17 @@ class BongaCamsProvider : MainAPI() {
         return models.firstOrNull { it.username.lowercase() == wanted } ?: models.firstOrNull()
     }
 
-    private fun buildListingUrl(filters: String, offset: Int, gender: String): String = buildString {
-        append(API_URL)
-        append("?online_only=1")
-        append("&limit=").append(LIST_PAGE_SIZE)
-        append("&offset=").append(offset)
-        if (gender.isNotBlank()) append("&c[]=").append(gender)
-        if (filters.isNotBlank()) append("&").append(filters)
-        append("&model_search[base_sort]=popular")
-    }
+    private fun buildListingUrl(category: String, filters: String, offset: Int, gender: String): String =
+        buildString {
+            append(API_URL)
+            append("?online_only=1")
+            append("&limit=").append(LIST_PAGE_SIZE)
+            append("&offset=").append(offset)
+            if (gender.isNotBlank()) append("&c[]=").append(gender)
+            if (category.isNotBlank()) append("&model_search[category]=").append(URLEncoder.encode(category, "utf8"))
+            if (filters.isNotBlank()) append("&").append(filters)
+            append("&model_search[base_sort]=popular")
+        }
 
     private fun proxyUrl(target: String): String = PROXY + URLEncoder.encode(target, "utf8")
 
@@ -311,8 +332,8 @@ class BongaCamsProvider : MainAPI() {
         private val paceLock = Any()
 
         private val modelCache = HashMap<String, Model>()
-        private var allModels: List<Model> = emptyList()
-        private var listFetchedAt = 0L
+        private val listings = HashMap<String, List<Model>>()
+        private val listingFetchedAt = HashMap<String, Long>()
 
         @Volatile private var lastRequestAt = 0L
     }

@@ -23,6 +23,12 @@ import java.net.URLEncoder
  *                  tpl[1] username, [2] display name, [3] status,
  *                  [4] viewers, [6] topic, [7] stream path, [8] gender,
  *                  [9] edge servers, [10] thumb, [13] HD flag.
+ *   * Categories -> PROXY(https://www.camsoda.com/api/v1/browse/react/girls/tag
+ *                  /<slug>-cams?p=<page>&gender-hide=m,t) returns pure JSON
+ *                  {totalCount, userList:[{username, displayName,
+ *                  connectionCount, subjectText, thumbUrl, status, ...}]} for a
+ *                  server-side category (up to 98 rooms per page; paginate
+ *                  until empty). Each home category row is such a listing.
  *   * Stream    -> PROXY(https://www.camsoda.com/api/v1/video/vtoken/<user>
  *                  ?username=guest_<n>) returns a fresh playback token; the
  *                  HLS master is then passed straight to the player from the
@@ -30,12 +36,13 @@ import java.net.URLEncoder
  *   * Search    -> client-side substring match on username / display name /
  *                  topic of the official room list (real matches only).
  *
- * Home rows (the browse API has no category/tags, so rows are limited to):
- *   All Female, HD Female.
+ * Home rows: All Female + HD (client-side filters over the room list), plus a
+ * curated set of category rows from the /girls/ tag API.
  *
  * Robustness: request pacing, HTTP 429 backoff, a short-lived room-list cache
- * (so a home load with several rows does not hammer the proxy), a shared
- * model cache for playback, and graceful handling of non-JSON responses.
+ * (so a home load with several rows does not hammer the proxy), a per-category
+ * cache, a shared model cache for playback, and graceful handling of non-JSON
+ * responses.
  */
 class CamsodaProvider : MainAPI() {
     override var mainUrl = "https://www.camsoda.com"
@@ -45,20 +52,46 @@ class CamsodaProvider : MainAPI() {
     override var vpnStatus = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "female" to "All Female",
+        "" to "All Female",
         "hd" to "HD Female",
+        "asian" to "Asian",
+        "ebony" to "Ebony",
+        "latina" to "Latina",
+        "milf" to "MILF",
+        "mature" to "Mature",
+        "bbw" to "BBW",
+        "petite" to "Petite",
+        "big-ass" to "Big Ass",
+        "big-tits" to "Big Tits",
+        "new" to "New",
+        "squirt" to "Squirt",
+        "red-hair" to "Red Hair",
+        "blonde-hair" to "Blonde",
+        "skinny" to "Skinny",
+        "granny" to "Granny",
+        "hairy" to "Hairy",
+        "indian" to "Indian",
+        "white" to "White",
+        "bdsm" to "BDSM",
+        "lesbian" to "Lesbian",
+        "anal" to "Anal",
+        "toys" to "Toys",
+        "vr-sex" to "VR Sex",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        // The browse API returns the whole online list in one call; rows are
-        // client-side filters over that list and paginated locally.
-        val filtered = when (request.data) {
+        // All Female / HD are client-side filters over the one-call room list;
+        // category rows are server-side tag listings from the /girls/ API.
+        val filtered: List<SearchResponse> = when (request.data) {
             "hd" -> fetchAll().filter { it.isReal && it.isHd() && it.gender() == "f" }
-            else -> fetchAll().filter { it.isReal && it.gender() == "f" }
+                .map { it.toSearchResponse() }
+            "" -> fetchAll().filter { it.isReal && it.gender() == "f" }
+                .map { it.toSearchResponse() }
+            else -> fetchCategory(request.data).map { it.toSearchResponse() }
         }
         val slice = filtered.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
         return newHomePageResponse(
-            HomePageList(request.name, slice.map { it.toSearchResponse() }, isHorizontalImages = false),
+            HomePageList(request.name, slice, isHorizontalImages = false),
             hasNext = (page * PAGE_SIZE) < filtered.size
         )
     }
@@ -130,6 +163,12 @@ class CamsodaProvider : MainAPI() {
             posterHeaders = mapOf("User-Agent" to USER_AGENT)
         }
 
+    private fun CategoryRoom.toSearchResponse(): SearchResponse =
+        newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
+            posterUrl = thumb()
+            posterHeaders = mapOf("User-Agent" to USER_AGENT)
+        }
+
     private fun roomUrl(username: String) = "$mainUrl/$username"
 
     /** Look a model up in the shared cache, else query the official list. */
@@ -162,6 +201,34 @@ class CamsodaProvider : MainAPI() {
         val target = "https://www.camsoda.com/api/v1/video/vtoken/$username" +
             "?username=guest_${(10_000..99_999).random()}"
         return parseJson<TokenResponse>(fetch(proxyUrl(target)))
+    }
+
+    /** Server-side category listing (tag API), paginated until empty. */
+    private suspend fun fetchCategory(slug: String): List<CategoryRoom> {
+        synchronized(catLock) {
+            categoryCache[slug]?.let { (at, list) ->
+                if (System.currentTimeMillis() - at < CATEGORY_TTL_MS) return list
+            }
+        }
+        val collected = ArrayList<CategoryRoom>()
+        var total = Int.MAX_VALUE
+        for (p in 1..MAX_CATEGORY_PAGES) {
+            val url = proxyUrl("$CATEGORY_API/$slug-cams?p=$p&gender-hide=m,t")
+            val text = fetch(url)
+            if (text.isBlank()) break
+            val resp = parseJson<CategoryResponse>(text) ?: break
+            val page = resp.userList.orEmpty().filter { it.isReal }
+            if (page.isEmpty()) break
+            collected.addAll(page)
+            total = resp.totalCount ?: total
+            if (collected.size >= total) break
+        }
+        if (collected.isEmpty()) return emptyList()
+        println("Camsoda category[$slug] -> ${collected.size} rooms")
+        synchronized(catLock) {
+            categoryCache[slug] = System.currentTimeMillis() to collected
+        }
+        return collected
     }
 
     private fun proxyUrl(target: String): String = PROXY + URLEncoder.encode(target, "utf8")
@@ -241,6 +308,40 @@ class CamsodaProvider : MainAPI() {
         @JsonProperty("status") val status: String? = null
     )
 
+    private data class CategoryResponse(
+        @JsonProperty("totalCount") val totalCount: Int? = null,
+        @JsonProperty("userList") val userList: List<CategoryRoom>? = null
+    )
+
+    /** Room from the /girls/tag/<slug>-cams API (server-side category list). */
+    private data class CategoryRoom(
+        @JsonProperty("username") val username: String = "",
+        @JsonProperty("displayName") val displayName: String? = null,
+        @JsonProperty("connectionCount") val connectionCount: String? = null,
+        @JsonProperty("subjectText") val subjectText: String? = null,
+        @JsonProperty("thumbUrl") val thumbUrl: String? = null,
+        @JsonProperty("status") val status: String? = null
+    ) {
+        val isReal: Boolean get() = username.isNotBlank()
+
+        fun viewers(): Int? = connectionCount?.toIntOrNull()
+
+        fun thumb(): String? {
+            val raw = thumbUrl ?: return null
+            return if (raw.startsWith("//")) "https:$raw" else raw
+        }
+
+        fun plot(): String? = buildString {
+            subjectText?.takeIf { it.isNotBlank() }?.let { append(it) }
+            viewers()?.let {
+                if (it > 0) {
+                    if (isNotEmpty()) append("\n\n")
+                    append("Watching: ").append(it)
+                }
+            }
+        }.takeIf { it.isNotBlank() }
+    }
+
     /** Wrapper over the tpl tuple of a browse/online room. */
     private class Model(val tpl: Map<String, Any?>) {
         fun username(): String = (tpl["1"] as? String).orEmpty()
@@ -276,9 +377,12 @@ class CamsodaProvider : MainAPI() {
     companion object {
         private const val PROXY = "https://proxy.rhoulou.com:7676/proxy.php?url="
         private const val BROWSE_URL = "https://www.camsoda.com/api/v1/browse/online"
+        private const val CATEGORY_API = "https://www.camsoda.com/api/v1/browse/react/girls/tag"
         private const val PAGE_SIZE = 36 // rooms shown per row page
 
         private const val CACHE_TTL_MS = 30_000L // room-list cache lifetime
+        private const val CATEGORY_TTL_MS = 90_000L // per-category listing cache
+        private const val MAX_CATEGORY_PAGES = 4 // ~390 rooms max per row
         private const val MIN_INTERVAL_MS = 350L // minimum gap between requests
         private const val RATE_LIMIT_PAUSE_MS = 2_500L // on HTTP 429
         private const val RETRY_PAUSE_MS = 800L // between failed attempts
@@ -288,9 +392,11 @@ class CamsodaProvider : MainAPI() {
 
         private val modelLock = Any()
         private val cacheLock = Any()
+        private val catLock = Any()
         private val paceLock = Any()
 
         private val modelCache = HashMap<String, Model>()
+        private val categoryCache = HashMap<String, Pair<Long, List<CategoryRoom>>>()
 
         @Volatile private var cachedModels: List<Model>? = null
         @Volatile private var cachedAt = 0L
