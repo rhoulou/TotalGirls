@@ -81,18 +81,17 @@ class CamsodaProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        val filters = "query=${URLEncoder.encode(query, "utf8")}"
-        val models = fetchModels(filters, 1)
-        println("Camsoda search '$query' -> ${models.size} results")
-        if (models.isEmpty()) {
-            // query only matches currently-online rooms, so a rare word can
-            // legitimately hit 0 hits. Fall back to the trending girls list so
-            // search never returns empty while the API is reachable.
-            val trending = fetchModels("", 1)
-            println("Camsoda search '$query' -> no direct hits, falling back to ${trending.size} trending girls")
-            return trending.map { it.toSearchResponse() }
-        }
-        return models.map { it.toSearchResponse() }
+        val encoded = URLEncoder.encode(query, "utf8")
+        val girls = fetchModels("query=$encoded", 1)
+        println("Camsoda search '$query' -> ${girls.size} results")
+        if (girls.isNotEmpty()) return girls.map { it.toSearchResponse() }
+        // The API matches the model's real username / room title, and search
+        // only sees currently-online rooms. A rare word may hit 0 female rooms,
+        // so retry without the gender filter - the results stay real usernames
+        // from the API, never unrelated ones.
+        val any = fetchModels("query=$encoded", 1, gender = false)
+        println("Camsoda search '$query' -> no girls, ${any.size} matches across genders")
+        return any.map { it.toSearchResponse() }
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -160,8 +159,8 @@ class CamsodaProvider : MainAPI() {
     }
 
     /** One lemoncams page for a row: base call + gender=female + the row filters. */
-    private suspend fun fetchModels(filters: String, page: Int): List<Model> {
-        val url = buildUrl(page = page, filters = filters)
+    private suspend fun fetchModels(filters: String, page: Int, gender: Boolean = true): List<Model> {
+        val url = buildUrl(page = page, filters = filters, gender = gender)
         val text = fetch(url)
         if (text.isBlank()) return emptyList()
         val models = parseJson<Response>(text)?.cams.orEmpty().filter { it.isReal }
@@ -176,13 +175,13 @@ class CamsodaProvider : MainAPI() {
         }
     }
 
-    private fun buildUrl(page: Int, filters: String): String = buildString {
+    private fun buildUrl(page: Int, filters: String, gender: Boolean = true): String = buildString {
         append(API_URL)
         append("?page=").append(page)
         append("&provider=").append(PROVIDER)
         append("&function=cams")
         append("&project=lemoncams")
-        append("&gender=female")
+        if (gender) append("&gender=female")
         if (filters.isNotBlank()) append("&").append(filters)
     }
 

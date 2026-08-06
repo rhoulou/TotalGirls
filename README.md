@@ -23,7 +23,7 @@ the home page); the Guys and Trans categories are deliberately left out.
 Easiest (no hosting): copy the `.cs3` file to your phone and open it with
 CloudStream 3 ("Install from file"). Or use the one-click page:
 
-- https://rhoulou.github.io/cloudstream/
+- https://rhoulou.github.io/TotalGirls/
 
 (The page deep-links into CloudStream 3 via the `cloudstreamrepo://` scheme.
 The repo descriptors `repo.json` / `plugins.json` are served from GitHub
