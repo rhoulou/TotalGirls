@@ -24,12 +24,10 @@ if [ -n "$NEW_VERSION" ]; then
     python3 - "$NEW_VERSION" <<'PY'
 import json, sys
 v = int(sys.argv[1])
-keep = set(sys.argv[2:])
 with open("plugins.json") as f:
     data = json.load(f)
 for p in data:
-    if p["internalName"] in keep:
-        p["version"] = v
+    p["version"] = v
 with open("plugins.json", "w") as f:
     json.dump(data, f, indent=4)
     f.write("\n")
