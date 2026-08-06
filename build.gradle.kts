@@ -70,7 +70,6 @@ subprojects {
         val implementation by configurations
 
         implementation("com.github.recloudstream.cloudstream:library:-SNAPSHOT")
-
         implementation(kotlin("stdlib"))
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")

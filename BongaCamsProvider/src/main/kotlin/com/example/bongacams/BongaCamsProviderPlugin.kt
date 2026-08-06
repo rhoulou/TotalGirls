@@ -1,13 +1,22 @@
 package com.example.bongacams
 
-import com.lagradost.cloudstream3.plugins.BasePlugin
+import android.content.Context
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
+import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class BongaCamsProviderPlugin : BasePlugin() {
-    override fun load() {
-        // Single provider listing bongacams female cams via the lemoncams API
-        // (All Female + the aggregator's category / hair color / HD / age rows).
+class BongaCamsProviderPlugin : Plugin() {
+    companion object {
+        @Volatile var appContext: Context? = null
+            private set
+    }
+
+    init {
+        openSettings = { ctx -> Settings.showSettings(ctx) }
+    }
+
+    override fun load(context: Context) {
+        appContext = context
         registerMainAPI(BongaCamsProvider())
     }
 }

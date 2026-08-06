@@ -12,7 +12,7 @@ import java.net.URLEncoder
 import kotlin.math.ceil
 
 /**
- * CloudStream 3 provider for BongaCams live cams (girls only).
+ * CloudStream 3 provider for BongaCams live cams.
  *
  * Uses the official bongacams.com listing API instead of the lemoncams.com
  * aggregator. bongacams.com is Cloudflare-protected, so the JSON calls are
@@ -20,17 +20,19 @@ import kotlin.math.ceil
  * request with a valid browser session (incl. X-Requested-With):
  *
  *   * Room list -> PROXY(https://bongacams.com/tools/listing_v3.php
- *                  ?online_only=1&limit=<n>&offset=<m>&c[]=female
+ *                  ?online_only=1&limit=<n>&offset=<m>
  *                  &model_search[base_sort]=popular
  *                  [&model_search[category]=<slug>])
  *                  returns {status, total_count, models:[{username,
  *                  display_name, gender, vq, viewers, esid, thumb_image, ...}]}.
- *                  gender (c[]=female) and display_name search are honoured
- *                  server-side; model_search[category]=<slug> also filters by
- *                  category (asian, ebony, latina, mature, bbw, petite, curvy,
- *                  anal, lesbian, big-tits, small-tits, squirt, blonde,
- *                  brunette, redhead). HD is NOT a category - it stays a
- *                  client-side vq filter over the full female listing.
+ *                  c[]=female is intentionally NOT sent: the pool is filtered
+ *                  client-side on model.gender so the enabled genders set
+ *                  (Female/Guys/Trans/Couples, from the plugin settings) works
+ *                  over the one listing. model_search[category]=<slug> also
+ *                  filters by category (asian, ebony, latina, mature, bbw,
+ *                  petite, curvy, anal, lesbian, big-tits, small-tits, squirt,
+ *                  blonde, brunette, redhead). HD is NOT a category - it stays
+ *                  a client-side vq filter over the full listing.
  *   * Stream    -> https://{esid}.bcvcdn.com/hls/stream_<User>/playlist.m3u8
  *                  where <User> keeps the exact case the API reports (the path
  *                  is case-sensitive); the bcvcdn edge the site uses, served to
@@ -38,45 +40,51 @@ import kotlin.math.ceil
  *   * Search    -> listing_v3?model_search[display_name][text]=<q> - matches
  *                  the model's real username / display name from the API.
  *
- * Home rows: All Female, HD (client-side), plus the server-side category slugs
- * listed above (each row paginates over its own cached listing).
+ * Home rows: All (enabled genders), HD (client-side), the server-side category
+ * slugs, plus a Couples row when enabled. Row and gender visibility come from
+ * the plugin settings (gear button in CloudStream). Note: the listing pool
+ * only contains female + couple rooms - Guys/Trans are not offered as options.
  * Robustness: request pacing, HTTP 429 backoff, retries, cached listings per
  * category, a shared model cache for playback, and graceful handling of
  * non-JSON responses (empty rows).
  */
 class BongaCamsProvider : MainAPI() {
     override var mainUrl = "https://bongacams.com"
-    override var name = "BongaCams Girls"
+    override var name = "BongaCams"
     override val supportedTypes = setOf(TvType.Live)
     override val hasMainPage = true
     override var vpnStatus = VPNStatus.MightBeNeeded
 
-    override val mainPage = mainPageOf(
-        "" to "All Female",
-        "hd" to "HD",
-        "asian" to "Asian",
-        "ebony" to "Ebony",
-        "latina" to "Latina",
-        "mature" to "Mature",
-        "bbw" to "BBW",
-        "petite" to "Petite",
-        "curvy" to "Curvy",
-        "anal" to "Anal",
-        "lesbian" to "Lesbian",
-        "big-tits" to "Big Tits",
-        "small-tits" to "Small Tits",
-        "squirt" to "Squirt",
-        "blonde" to "Blonde",
-        "brunette" to "Brunette",
-        "redhead" to "Redhead",
-    )
+    override val mainPage: List<MainPageData>
+        get() {
+            val g = Settings.genders()
+            val rows = Settings.ALL_ROWS
+                .filter { (key, _) -> Settings.isRowEnabled(key) }
+                .toMutableList()
+            // "All Female" -> "All" when other genders are enabled.
+            val first = rows.indexOfFirst { it.first == "" }
+            if (first >= 0 && g.size > 1) rows[first] = "" to "All"
+            if ("couple" in g) rows.add("g=couple" to "Couples")
+            return mainPageOf(*rows.toTypedArray())
+        }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
         // Category rows fetch their own server-side listing; HD is a
-        // client-side vq filter over the full female listing.
-        val all = fullListing(if (request.data == "hd") "" else request.data)
+        // client-side vq filter over the full (gender-filtered) listing.
+        val all = fullListing(if (request.data == "hd" || request.data.startsWith("g=")) "" else request.data)
         val offset = (page - 1) * PAGE_SIZE
-        val filtered = if (request.data == "hd") all.filter { it.isHd() } else all
+        val filtered = when {
+            request.data == "hd" -> all.filter { it.isHd() }
+            request.data.startsWith("g=") -> {
+                val want = request.data.removePrefix("g=")
+                if (want == "couple") {
+                    all.filter { it.gender == "couple_f_m" || it.gender == "couple_f_f" }
+                } else {
+                    all.filter { it.gender == want }
+                }
+            }
+            else -> all
+        }
         val slice = filtered.drop(offset).take(PAGE_SIZE)
         return newHomePageResponse(
             HomePageList(request.name, slice.map { it.toSearchResponse() }, isHorizontalImages = false),
@@ -154,7 +162,7 @@ class BongaCamsProvider : MainAPI() {
         return v.contains("1080") || v.contains("2160") || v.contains("hd") || v.contains("high")
     }
 
-    /** Online female listing for a category ("" = all), cached briefly. */
+    /** Online listing for a category ("" = all), cached briefly. */
     private suspend fun fullListing(category: String): List<Model> {
         synchronized(listLock) {
             listings[category]?.let { list ->
@@ -165,7 +173,7 @@ class BongaCamsProvider : MainAPI() {
         var offset = 0
         var total = Int.MAX_VALUE
         while (offset < total && offset < MAX_SCAN) {
-            val url = proxyUrl(buildListingUrl(category, "", offset, "female"))
+            val url = proxyUrl(buildListingUrl(category, "", offset, ""))
             val text = fetch(url)
             if (text.isBlank()) break
             val parsed = parseJson<ListingResponse>(text) ?: break
@@ -176,13 +184,14 @@ class BongaCamsProvider : MainAPI() {
             cacheAll(page)
             offset += page.size
         }
-        if (collected.isEmpty()) return emptyList()
-        println("BongaCams listing[$category] -> ${collected.size} online female models")
+        val filtered = collected.filter { Settings.isGenderEnabled(it.gender) }
+        if (filtered.isEmpty()) return emptyList()
+        println("BongaCams listing[$category] -> ${filtered.size} online models (genders=${Settings.genders()})")
         synchronized(listLock) {
-            listings[category] = collected
+            listings[category] = filtered
             listingFetchedAt[category] = System.currentTimeMillis()
         }
-        return collected
+        return filtered
     }
 
     /** Look a model up in the shared cache, else query the API for the name. */
@@ -210,7 +219,7 @@ class BongaCamsProvider : MainAPI() {
             append("&model_search[base_sort]=popular")
         }
 
-    private fun proxyUrl(target: String): String = PROXY + URLEncoder.encode(target, "utf8")
+    private fun proxyUrl(target: String): String = Settings.proxy() + URLEncoder.encode(target, "utf8")
 
     private fun cacheAll(models: List<Model>) {
         if (models.isEmpty()) return
@@ -313,7 +322,6 @@ class BongaCamsProvider : MainAPI() {
     }
 
     companion object {
-        private const val PROXY = "https://proxy.rhoulou.com:7676/proxy.php?url="
         private const val API_URL = "https://bongacams.com/tools/listing_v3.php"
         private const val PAGE_SIZE = 36 // cams per home page
         private const val LIST_PAGE_SIZE = 100 // models fetched per API call

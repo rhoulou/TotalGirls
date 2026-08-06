@@ -1,14 +1,22 @@
 package com.example.cam4
 
-import com.lagradost.cloudstream3.plugins.BasePlugin
+import android.content.Context
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
+import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class Cam4ProviderPlugin : BasePlugin() {
-    override fun load() {
-        // Single provider mirroring the cam4.com female category rows
-        // (New / Teen / MILF / Babe / Mature / Petite / Skinny / BBW /
-        // Asian / Black-Ebony / Latina-Hispanic / White).
+class Cam4ProviderPlugin : Plugin() {
+    companion object {
+        @Volatile var appContext: Context? = null
+            private set
+    }
+
+    init {
+        openSettings = { ctx -> Settings.showSettings(ctx) }
+    }
+
+    override fun load(context: Context) {
+        appContext = context
         registerMainAPI(Cam4Provider())
     }
 }

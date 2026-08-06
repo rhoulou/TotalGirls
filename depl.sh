@@ -8,7 +8,7 @@ ANDROID_HOME="${ANDROID_HOME:-/opt/android-sdk}"
 GRADLE="${GRADLE:-/tmp/opencode/gradle-8.12/bin/gradle}"
 GH_REPO="rhoulou/TotalGirls"
 SITE_URL="https://raw.githubusercontent.com/rhoulou/TotalGirls/main"
-PROVIDERS=(BongaCamsProvider CamsodaProvider)
+PROVIDERS=(BongaCamsProvider CamsodaProvider Cam4Provider ChaturbateProvider StripchatProvider)
 NEW_VERSION="${1:-}"
 
 tasks=()
@@ -24,7 +24,7 @@ if [ -n "$NEW_VERSION" ]; then
     python3 - "$NEW_VERSION" <<'PY'
 import json, sys
 v = int(sys.argv[1])
-keep = {"BongaCamsProvider", "CamsodaProvider"}
+keep = set(sys.argv[2:])
 with open("plugins.json") as f:
     data = json.load(f)
 for p in data:
@@ -48,6 +48,24 @@ export ANDROID_HOME
 for p in "${PROVIDERS[@]}"; do
     cp "$p/build/$p.cs3" "$p.cs3"
 done
+
+echo "== Recording file sizes + sha256 hashes =="
+python3 - <<'PY'
+import hashlib, json
+with open("plugins.json") as f:
+    data = json.load(f)
+for p in data:
+    path = p["internalName"] + ".cs3"
+    try:
+        blob = open(path, "rb").read()
+        p["fileSize"] = len(blob)
+        p["fileHash"] = "sha256-" + hashlib.sha256(blob).hexdigest()
+    except FileNotFoundError:
+        pass
+with open("plugins.json", "w") as f:
+    json.dump(data, f, indent=4)
+    f.write("\n")
+PY
 
 echo "== Verifying manifests =="
 for p in "${PROVIDERS[@]}"; do
@@ -74,7 +92,7 @@ commit() {
     git add -A
     if ! git diff --cached --quiet; then
         if [ -n "$NEW_VERSION" ]; then
-            git commit -m "v$NEW_VERSION: official APIs via personal proxy (rebuild)"
+            git commit -m "v$NEW_VERSION: per-provider settings (proxy/gender/rows)"
         else
             git commit -m "rebuild plugins"
         fi
@@ -95,11 +113,11 @@ for _ in $(seq 1 12); do
 try:
     v=$EXPECTED
     d=json.load(sys.stdin)
-    ok=[p for p in d if p['internalName'] in ('BongaCamsProvider','CamsodaProvider') and p['version']==v]
-    sys.exit(0 if len(ok)==2 else 1)
+    ok=[p for p in d if p['internalName'] in ('BongaCamsProvider','CamsodaProvider','Cam4Provider','ChaturbateProvider','StripchatProvider') and p['version']==v]
+    sys.exit(0 if len(ok)==5 else 1)
 except Exception:
     sys.exit(1)"; then
-        echo "Live on raw: both providers at v$EXPECTED"
+        echo "Live on raw: all providers at v$EXPECTED"
         exit 0
     fi
 done

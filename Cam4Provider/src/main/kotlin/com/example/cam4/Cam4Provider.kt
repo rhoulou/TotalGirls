@@ -15,7 +15,7 @@ import org.json.JSONObject
 import java.net.URLEncoder
 
 /**
- * CloudStream 3 provider for Cam4 live cams (girls only).
+ * CloudStream 3 provider for Cam4 live cams.
  *
  * Scrapes cam4.com directly from the phone (no addon server), mirroring the
  * logic in the working PHP scrapers:
@@ -23,11 +23,11 @@ import java.net.URLEncoder
  *   * Room list -> POST https://www.cam4.com/graph?operation=
  *                  getGenderPreferencePageData&ssr=false (GraphQL, header
  *                  `apollographql-client-name: CAM4-client`). Filters by
- *                  `gender` server-side (female only) plus a category `filters`
- *                  slug per home row, and pages with
- *                  `cursor: { first: 200, offset }`. Each item already carries
- *                  the live HLS master (`preview.src`) and poster
- *                  (`profileImageURL`).
+ *                  `gender` server-side (female / male / transgender - the
+ *                  GenderEnum values) plus a category `filters` slug per home
+ *                  row, and pages with `cursor: { first: 200, offset }`. Each
+ *                  item already carries the live HLS master (`preview.src`) and
+ *                  poster (`profileImageURL`).
  *   * Search    -> GET /api/directoryCams?...&search=<query> (returns a bare
  *                  JSON array of users; no GraphQL search exists).
  *   * Stream    -> GET /api/directoryCams?...&username=<user> yields
@@ -39,41 +39,41 @@ import java.net.URLEncoder
  * Category rows use the server-side GraphQL `filters` slugs (the compound
  * forms like `petite-female-body` / `bbw-female-body` / `black`; the short
  * labels like `petite`/`bbw`/`ebony`/`latina` are ignored by the API). HD and
- * Morocco have no working filter.
+ * Morocco have no working filter. Gender rows (Guys / Trans) appear when those
+ * genders are enabled in the plugin settings.
  */
 class Cam4Provider : MainAPI() {
     override var mainUrl = "https://www.cam4.com"
-    override var name = "Cam4 Girls"
+    override var name = "Cam4"
     override val supportedTypes = setOf(TvType.Live)
     override val hasMainPage = true
     override var vpnStatus = VPNStatus.MightBeNeeded
 
-    override val mainPage = mainPageOf(
-        "new" to "New",
-        "teen" to "Teen",
-        "milf" to "MILF",
-        "babe" to "Babe",
-        "mature" to "Mature",
-        "petite-female-body" to "Petite",
-        "skinny-female-body" to "Skinny",
-        "bbw-female-body" to "BBW",
-        "asian" to "Asian",
-        "black" to "Black / Ebony",
-        "hispanic" to "Latina / Hispanic",
-        "white" to "White",
-    )
+    override val mainPage: List<MainPageData>
+        get() {
+            val g = Settings.genders()
+            val rows = mutableListOf<Pair<String, String>>()
+            if ("female" in g) {
+                Settings.ALL_ROWS.filter { (key, _) -> Settings.isRowEnabled(key) }
+                    .forEach { rows.add(it) }
+            }
+            if ("male" in g) rows.add("g=male" to "Guys")
+            if ("transgender" in g) rows.add("g=transgender" to "Trans")
+            return mainPageOf(*rows.toTypedArray())
+        }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
+        val specs = rowSpecs()
         if (page <= 1) {
-            val rows = rowSpecs.mapNotNull { spec ->
-                val items = fetchBroadcasts("female", listOf(spec.filterSlug), 0)
+            val rows = specs.mapNotNull { spec ->
+                val items = fetchBroadcasts(spec.gender, specFilters(spec), 0)
                 if (items.isEmpty()) null
                 else HomePageList(spec.name, items.map { it.toSearchResponse() }, isHorizontalImages = true)
             }
             return newHomePageResponse(rows)
         }
-        val spec = rowSpecs.firstOrNull { it.name == request.name } ?: return null
-        val items = fetchBroadcasts("female", listOf(spec.filterSlug), (page - 1) * PAGE_SIZE)
+        val spec = specs.firstOrNull { it.name == request.name } ?: return null
+        val items = fetchBroadcasts(spec.gender, specFilters(spec), (page - 1) * PAGE_SIZE)
         return newHomePageResponse(
             HomePageList(spec.name, items.map { it.toSearchResponse() }, isHorizontalImages = true),
             hasNext = items.size >= PAGE_SIZE
@@ -128,22 +128,24 @@ class Cam4Provider : MainAPI() {
 
     // ------------------------------------------------------- helpers
 
-    private data class RowSpec(val name: String, val filterSlug: String)
+    private data class RowSpec(val name: String, val gender: String, val filterSlug: String)
 
-    private val rowSpecs = listOf(
-        RowSpec("New", "new"),
-        RowSpec("Teen", "teen"),
-        RowSpec("MILF", "milf"),
-        RowSpec("Babe", "babe"),
-        RowSpec("Mature", "mature"),
-        RowSpec("Petite", "petite-female-body"),
-        RowSpec("Skinny", "skinny-female-body"),
-        RowSpec("BBW", "bbw-female-body"),
-        RowSpec("Asian", "asian"),
-        RowSpec("Black / Ebony", "black"),
-        RowSpec("Latina / Hispanic", "hispanic"),
-        RowSpec("White", "white"),
-    )
+    /** Rows for the currently enabled genders (category rows are female). */
+    private fun rowSpecs(): List<RowSpec> {
+        val g = Settings.genders()
+        val out = mutableListOf<RowSpec>()
+        if ("female" in g) {
+            Settings.ALL_ROWS.forEach { (key, name) ->
+                if (Settings.isRowEnabled(key)) out.add(RowSpec(name, "female", key))
+            }
+        }
+        if ("male" in g) out.add(RowSpec("Guys", "male", ""))
+        if ("transgender" in g) out.add(RowSpec("Trans", "transgender", ""))
+        return out
+    }
+
+    private fun specFilters(spec: RowSpec): List<String> =
+        if (spec.filterSlug.isBlank()) emptyList() else listOf(spec.filterSlug)
 
     private fun Item.toSearchResponse(): SearchResponse =
         newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
@@ -199,12 +201,13 @@ class Cam4Provider : MainAPI() {
     // ------------------------------------------------------- low level fetch
 
     private suspend fun fetch(url: String): String {
+        val target = wrap(url)
         var lastError: Exception? = null
         for (attempt in 0 until 3) {
             try {
                 pace()
                 val res = app.get(
-                    url,
+                    target,
                     headers = mapOf(
                         "User-Agent" to USER_AGENT,
                         "Referer" to REFERER,
@@ -230,6 +233,12 @@ class Cam4Provider : MainAPI() {
         }
         println("Cam4 request failed: $lastError")
         return ""
+    }
+
+    /** Route a GET through the user's proxy when one is configured (POSTs stay direct). */
+    private fun wrap(url: String): String {
+        val p = Settings.proxy()
+        return if (p.isBlank()) url else p + URLEncoder.encode(url, "utf8")
     }
 
     private suspend fun fetchPost(url: String, headers: Map<String, String>, body: okhttp3.RequestBody): String {

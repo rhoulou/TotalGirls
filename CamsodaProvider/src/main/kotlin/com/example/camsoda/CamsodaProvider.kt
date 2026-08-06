@@ -11,7 +11,7 @@ import kotlinx.coroutines.delay
 import java.net.URLEncoder
 
 /**
- * CloudStream 3 provider for CamSoda live cams (girls only).
+ * CloudStream 3 provider for CamSoda live cams.
  *
  * Uses the official camsoda.com API instead of the lemoncams.com aggregator.
  * camsoda.com API is Cloudflare-protected, so the JSON calls are fetched
@@ -22,7 +22,9 @@ import java.net.URLEncoder
  *                  returns every online room as {tpl:{...}} tuples:
  *                  tpl[1] username, [2] display name, [3] status,
  *                  [4] viewers, [6] topic, [7] stream path, [8] gender,
- *                  [9] edge servers, [10] thumb, [13] HD flag.
+ *                  [9] edge servers, [10] thumb, [13] HD flag. The list
+ *                  contains all genders, filtered client-side by the enabled
+ *                  genders set (Female/Guys/Trans/Couples, plugin settings).
  *   * Categories -> PROXY(https://www.camsoda.com/api/v1/browse/react/girls/tag
  *                  /<slug>-cams?p=<page>&gender-hide=m,t) returns pure JSON
  *                  {totalCount, userList:[{username, displayName,
@@ -34,10 +36,12 @@ import java.net.URLEncoder
  *                  HLS master is then passed straight to the player from the
  *                  livemediahost edge (no proxy - that CDN is not protected).
  *   * Search    -> client-side substring match on username / display name /
- *                  topic of the official room list (real matches only).
+ *                  topic of the official room list (real matches, enabled
+ *                  genders only).
  *
- * Home rows: All Female + HD (client-side filters over the room list), plus a
- * curated set of category rows from the /girls/ tag API.
+ * Home rows: All (enabled genders) + HD (client-side filters over the room
+ * list), a Guys / Trans / Couples row per enabled extra gender, plus a curated
+ * set of category rows from the /girls/ tag API (girls only).
  *
  * Robustness: request pacing, HTTP 429 backoff, a short-lived room-list cache
  * (so a home load with several rows does not hammer the proxy), a per-category
@@ -46,46 +50,35 @@ import java.net.URLEncoder
  */
 class CamsodaProvider : MainAPI() {
     override var mainUrl = "https://www.camsoda.com"
-    override var name = "Camsoda Girls"
+    override var name = "Camsoda"
     override val supportedTypes = setOf(TvType.Live)
     override val hasMainPage = true
     override var vpnStatus = VPNStatus.MightBeNeeded
 
-    override val mainPage = mainPageOf(
-        "" to "All Female",
-        "hd" to "HD Female",
-        "asian" to "Asian",
-        "ebony" to "Ebony",
-        "latina" to "Latina",
-        "milf" to "MILF",
-        "mature" to "Mature",
-        "bbw" to "BBW",
-        "petite" to "Petite",
-        "big-ass" to "Big Ass",
-        "big-tits" to "Big Tits",
-        "new" to "New",
-        "squirt" to "Squirt",
-        "red-hair" to "Red Hair",
-        "blonde-hair" to "Blonde",
-        "skinny" to "Skinny",
-        "granny" to "Granny",
-        "hairy" to "Hairy",
-        "indian" to "Indian",
-        "white" to "White",
-        "bdsm" to "BDSM",
-        "lesbian" to "Lesbian",
-        "anal" to "Anal",
-        "toys" to "Toys",
-        "vr-sex" to "VR Sex",
-    )
+    override val mainPage: List<MainPageData>
+        get() {
+            val g = Settings.genders()
+            val rows = Settings.ALL_ROWS
+                .filter { (key, _) -> Settings.isRowEnabled(key) }
+                .toMutableList()
+            val first = rows.indexOfFirst { it.first == "" }
+            if (first >= 0 && g.size > 1) rows[first] = "" to "All"
+            if ("m" in g) rows.add("m" to "Guys")
+            if ("t" in g) rows.add("t" to "Trans")
+            if ("c" in g) rows.add("c" to "Couples")
+            return mainPageOf(*rows.toTypedArray())
+        }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        // All Female / HD are client-side filters over the one-call room list;
-        // category rows are server-side tag listings from the /girls/ API.
+        // All / HD are client-side filters over the one-call room list; gender
+        // rows are the same list filtered to one gender; category rows are
+        // server-side tag listings from the /girls/ API (girls only).
         val filtered: List<SearchResponse> = when (request.data) {
-            "hd" -> fetchAll().filter { it.isReal && it.isHd() && it.gender() == "f" }
+            "hd" -> fetchAll().filter { it.isReal && it.isHd() && it.gender() in Settings.genders() }
                 .map { it.toSearchResponse() }
-            "" -> fetchAll().filter { it.isReal && it.gender() == "f" }
+            "m", "t", "c" -> fetchAll().filter { it.isReal && it.gender() == request.data }
+                .map { it.toSearchResponse() }
+            "" -> fetchAll().filter { it.isReal && it.gender() in Settings.genders() }
                 .map { it.toSearchResponse() }
             else -> fetchCategory(request.data).map { it.toSearchResponse() }
         }
@@ -97,15 +90,12 @@ class CamsodaProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        val q = query.trim().lowercase()
-        val models = fetchAll()
-        val matches = models.filter { m ->
-            m.isReal && (
-                m.username().lowercase().contains(q) ||
-                m.displayName().lowercase().contains(q) ||
-                m.topic()?.lowercase()?.contains(q) == true
-                )
-        }
+        // Server-side autocomplete (matches real usernames) -> enabled genders,
+        // online rooms only.
+        val url = "$AUTOCOMPLETE_URL?s=${URLEncoder.encode(query, "utf8")}"
+        val resp = parseJson<AutocompleteResponse>(fetch(proxyUrl(url)))
+        val matches = resp?.results.orEmpty()
+            .filter { it.isReal && it.isOnline && it.gender() in Settings.genders() }
         println("Camsoda search '$query' -> ${matches.size} results")
         return matches.map { it.toSearchResponse() }
     }
@@ -166,6 +156,12 @@ class CamsodaProvider : MainAPI() {
     private fun CategoryRoom.toSearchResponse(): SearchResponse =
         newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
             posterUrl = thumb()
+            posterHeaders = mapOf("User-Agent" to USER_AGENT)
+        }
+
+    private fun AutocompleteUser.toSearchResponse(): SearchResponse =
+        newLiveSearchResponse(username, roomUrl(username), TvType.Live) {
+            posterUrl = thumbUrl()
             posterHeaders = mapOf("User-Agent" to USER_AGENT)
         }
 
@@ -231,7 +227,7 @@ class CamsodaProvider : MainAPI() {
         return collected
     }
 
-    private fun proxyUrl(target: String): String = PROXY + URLEncoder.encode(target, "utf8")
+    private fun proxyUrl(target: String): String = Settings.proxy() + URLEncoder.encode(target, "utf8")
 
     // ------------------------------------------------------- low level fetch
 
@@ -313,6 +309,32 @@ class CamsodaProvider : MainAPI() {
         @JsonProperty("userList") val userList: List<CategoryRoom>? = null
     )
 
+    private data class AutocompleteResponse(
+        @JsonProperty("status") val status: Boolean? = null,
+        @JsonProperty("results") val results: List<AutocompleteUser>? = null
+    )
+
+    /** User from the browse/autocomplete search endpoint. */
+    private data class AutocompleteUser(
+        @JsonProperty("username") val username: String = "",
+        @JsonProperty("display_name") val displayName: String? = null,
+        @JsonProperty("subject") val subject: String? = null,
+        @JsonProperty("gender") val gender: String? = null,
+        @JsonProperty("status") val status: String? = null,
+        @JsonProperty("thumb") val thumb: String? = null
+    ) {
+        val isReal: Boolean get() = username.isNotBlank() && username.lowercase() != "profile"
+
+        val isOnline: Boolean get() = status.equals("online", ignoreCase = true)
+
+        fun gender(): String = gender.orEmpty()
+
+        fun thumbUrl(): String? {
+            val raw = thumb ?: return null
+            return if (raw.startsWith("//")) "https:$raw" else raw
+        }
+    }
+
     /** Room from the /girls/tag/<slug>-cams API (server-side category list). */
     private data class CategoryRoom(
         @JsonProperty("username") val username: String = "",
@@ -375,8 +397,8 @@ class CamsodaProvider : MainAPI() {
     }
 
     companion object {
-        private const val PROXY = "https://proxy.rhoulou.com:7676/proxy.php?url="
         private const val BROWSE_URL = "https://www.camsoda.com/api/v1/browse/online"
+        private const val AUTOCOMPLETE_URL = "https://www.camsoda.com/api/v1/browse/autocomplete"
         private const val CATEGORY_API = "https://www.camsoda.com/api/v1/browse/react/girls/tag"
         private const val PAGE_SIZE = 36 // rooms shown per row page
 

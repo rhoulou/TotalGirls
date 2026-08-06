@@ -64,11 +64,12 @@ class StripchatProvider(private val target: String, displayName: String) : MainA
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        val q = query.lowercase()
         val tag = PRIMARY_TAG[target] ?: "girls"
-        return getSnapshot(tag, tag)
-            .filter { (it.username ?: "").contains(q) }
-            .map { it.toSearchResponse(this) }
+        val url = "$SUGGEST_URL?query=${URLEncoder.encode(query, "utf8")}&limit=10&primaryTag=${URLEncoder.encode(tag, "utf8")}"
+        val models = runCatching { fetchJson<SuggestionResponse>(url) }.getOrNull()?.models
+            .orEmpty().filter { it.isLive != false }
+        println("Stripchat search '$query' -> ${models.size} results")
+        return models.map { it.toSearchResponse(this) }
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -146,9 +147,11 @@ class StripchatProvider(private val target: String, displayName: String) : MainA
             RowSpec("Other Regions", tag, region = "other"),
             RowSpec("Couples Live", "couples")
         )
-        FLAG_GENRES.forEach { flag -> specs.add(RowSpec(flag, tag, flag = flag)) }
+        FLAG_GENRES.forEach { flag ->
+            if (Settings.isRowEnabled(flag)) specs.add(RowSpec(flag, tag, flag = flag))
+        }
         GENDER_AGE_GENRES.getValue(genderLabel()).forEach { age ->
-            specs.add(RowSpec(age, tag, ageTag = AGE_TAGS.getValue(age)))
+            if (Settings.isRowEnabled(age)) specs.add(RowSpec(age, tag, ageTag = AGE_TAGS.getValue(age)))
         }
         return specs
     }
@@ -301,12 +304,13 @@ class StripchatProvider(private val target: String, displayName: String) : MainA
     // ------------------------------------------------------- low level fetch
 
     private suspend fun fetch(url: String): String {
+        val target = wrap(url)
         var lastError: Exception? = null
         for (attempt in 0 until 3) {
             try {
                 pace()
                 val res = app.get(
-                    url,
+                    target,
                     headers = mapOf(
                         "User-Agent" to USER_AGENT,
                         "Front-Version" to FRONT_VERSION,
@@ -335,6 +339,12 @@ class StripchatProvider(private val target: String, displayName: String) : MainA
         return ""
     }
 
+    /** Route a request through the user's proxy when one is configured. */
+    private fun wrap(url: String): String {
+        val p = Settings.proxy()
+        return if (p.isBlank()) url else p + URLEncoder.encode(url, "utf8")
+    }
+
     private suspend inline fun <reified T : Any> fetchJson(url: String): T? {
         val text = fetch(url)
         // The API returns an HTML Cloudflare challenge page instead of JSON.
@@ -361,6 +371,8 @@ class StripchatProvider(private val target: String, displayName: String) : MainA
 
     private data class ModelsResponse(@JsonProperty("models") val models: List<Model>? = null)
 
+    private data class SuggestionResponse(@JsonProperty("models") val models: List<Model>? = null)
+
     private data class InitialDynamicResponse(
         @JsonProperty("initialDynamic") val initialDynamic: Dynamic? = null
     )
@@ -381,7 +393,8 @@ class StripchatProvider(private val target: String, displayName: String) : MainA
         @JsonProperty("isVr") val isVr: Boolean? = null,
         @JsonProperty("isMobile") val isMobile: Boolean? = null,
         @JsonProperty("isLovense") val isLovense: Boolean? = null,
-        @JsonProperty("isKiiroo") val isKiiroo: Boolean? = null
+        @JsonProperty("isKiiroo") val isKiiroo: Boolean? = null,
+        @JsonProperty("isLive") val isLive: Boolean? = null
     ) {
         /** Live snapshot thumbnail (the addon's poster logic). */
         fun posterUrl(): String? =
@@ -404,6 +417,7 @@ class StripchatProvider(private val target: String, displayName: String) : MainA
         private const val BASE_URL = "https://stripchat.com"
         private const val CONFIG_URL = "$BASE_URL/api/front/v3/config/initial-dynamic?requestPath=%2F"
         private const val ROOMLIST_URL = "$BASE_URL/api/front/models"
+        private const val SUGGEST_URL = "$BASE_URL/api/front/v4/models/search/suggestion"
         private const val FRONT_VERSION = "11.6.18"
 
         private const val PAGE_SIZE = 99 // roomlist API caps a page at 99 rooms

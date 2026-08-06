@@ -116,7 +116,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
         // player only the per-variant chunklist URLs, like the Stremio addon does.
         // The mmcdn master endpoint 403s requests without a browser fingerprint,
         // but the variant chunklists are served to any client.
-        val master = fetch(hlsSource)
+        val master = fetchDirect(hlsSource)
         if (master.isBlank()) return false
         val variants = parseMasterVariants(master, hlsSource)
         if (variants.isEmpty()) {
@@ -175,7 +175,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
             RowSpec("Couples Live", "c")
         )
         GENRES.getValue(genderLabel()).forEach { tag ->
-            specs.add(RowSpec(tag, code, tag = tag))
+            if (Settings.isRowEnabled(tag)) specs.add(RowSpec(tag, code, tag = tag))
         }
         return specs
     }
@@ -211,7 +211,17 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
 
     // ------------------------------------------------------- low level fetch
 
-    private suspend fun fetch(url: String): String {
+    private suspend fun fetch(url: String): String =
+        fetchDirect(wrap(url))
+
+    /** Route a request through the user's proxy when one is configured. */
+    private fun wrap(url: String): String {
+        val p = Settings.proxy()
+        return if (p.isBlank()) url else p + URLEncoder.encode(url, "utf8")
+    }
+
+    /** Plain request, never proxied (room pages / the HLS master stay direct). */
+    private suspend fun fetchDirect(url: String): String {
         var lastError: Exception? = null
         for (attempt in 0 until 3) {
             try {
@@ -258,7 +268,7 @@ class ChaturbateProvider(private val gender: String, displayName: String) : Main
 
     /** Parse the window.initialRoomDossier JSON from a room page. */
     private suspend fun fetchDossier(username: String): RoomDossier? {
-        val html = fetch(roomUrl(username))
+        val html = fetchDirect(roomUrl(username))
         if (html.isBlank()) return null
         val match = DOSSIER_REGEX.find(html) ?: return null
         val raw = match.groupValues[1]
