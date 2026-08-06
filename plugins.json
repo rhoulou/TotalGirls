@@ -2,9 +2,9 @@
     {
         "name": "Chaturbate",
         "internalName": "ChaturbateProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateProvider_12.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateProvider_13.cs3",
         "status": 1,
-        "version": 12,
+        "version": 13,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -16,15 +16,15 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 36584,
-        "fileHash": "sha256-618ef76531690701ac75de8f993e93984ba191cca3b99d4ae1f73ad809088f92"
+        "fileSize": 36585,
+        "fileHash": "sha256-d437579774957213a9bc0445d2486f45a0d716e6c767b65cb6be61cb3a3fed29"
     },
     {
         "name": "Stripchat",
         "internalName": "StripchatProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatProvider_12.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatProvider_13.cs3",
         "status": 3,
-        "version": 12,
+        "version": 13,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -37,14 +37,14 @@
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
         "fileSize": 41421,
-        "fileHash": "sha256-fc5d027febdccb220f9a62e4e186733a5bb0ec3c3a261755d7270b61b5760bf1"
+        "fileHash": "sha256-84ea80aa6c6fcfe77b8d857f4838d6b5fe39d99e2ebc62a12de6286c05cd57bd"
     },
     {
         "name": "Cam4 Girls",
         "internalName": "Cam4Provider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/Cam4Provider_12.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/Cam4Provider_13.cs3",
         "status": 3,
-        "version": 12,
+        "version": 13,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -57,14 +57,14 @@
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/cam4.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
         "fileSize": 39580,
-        "fileHash": "sha256-7430b6ba472753c87817a5c57aa5519b1f75d890235f906f6907b749cfb6d694"
+        "fileHash": "sha256-da792a859f4141fce1b1e55279dd92e2a6745804261ec3da1a616630aef706a7"
     },
     {
         "name": "BongaCams Girls",
         "internalName": "BongaCamsProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/BongaCamsProvider_12.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/BongaCamsProvider_13.cs3",
         "status": 3,
-        "version": 12,
+        "version": 13,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -77,14 +77,14 @@
         "iconUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcqPE4qe0Lwql6tVNmAmrw3Glpxf8BhJupzsdNiRZ6xw&s=10",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
         "fileSize": 31229,
-        "fileHash": "sha256-3cdaccd66521c9ed69a82e4a2ad56c4ce28770d25e4bea24e2d37d385c2d707f"
+        "fileHash": "sha256-725fed5a462661a9c91edc3b0a1353dbdbb769ebf6a0d40de4f779228395e08c"
     },
     {
         "name": "Camsoda Girls",
         "internalName": "CamsodaProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsodaProvider_12.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsodaProvider_13.cs3",
         "status": 3,
-        "version": 12,
+        "version": 13,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -96,7 +96,27 @@
         ],
         "iconUrl": "https://webcamstartup.com/wp-content/uploads/2024/05/PPe3W893RXS7AG2MoYGd_St6ScIFr05xhO0zJ.jpg",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 36796,
-        "fileHash": "sha256-7cc68b8ee21b8f3f86da10dcb70489e5ace3b7fc49db8731f149ae86dd62b866"
+        "fileSize": 36797,
+        "fileHash": "sha256-44ef5ce995b1f25ad9920021a0df73bc37cda74bcff1424ab10d194fb8814cf4"
+    },
+    {
+        "name": "Streamate",
+        "internalName": "StreamateProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StreamateProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Streamate cams. Scrapes streamate.com directly from the phone - /v4 guest gateway feed, keyword rows and autocomplete search, plus the manifest-server HLS stream passed to the player.",
+        "language": "en",
+        "tvTypes": [
+            "Live"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/streamate.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 31085,
+        "fileHash": "sha256-1f0ad3ef4ac23115aa243e26a65d38ee34a5a842ef9c6f05d999d275422dc104"
     }
 ]

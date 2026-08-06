@@ -3,7 +3,7 @@ version = 13
 
 cloudstream {
     language = "en"
-    description = "Live Stripchat cams (Girls). Scrapes stripchat.com directly from the phone - guest hash + roomlist logic, saawsedge HLS master passed to the player."
+    description = "Live Streamate cams. Scrapes streamate.com directly from the phone - /v4 guest gateway API for the live-now feed, keyword rows and name search (autocomplete), plus the manifest-server HLS stream passed to the player."
     authors = listOf("rhoulou")
 
     /**
@@ -16,5 +16,5 @@ cloudstream {
     status = 3 // beta until you are happy with it
     tvTypes = listOf("Live")
 
-    iconUrl = "https://rhoulou.github.io/cloudstream/stripchat.png"
+    iconUrl = "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/streamate.png"
 }
