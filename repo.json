@@ -3,6 +3,6 @@
     "description": "Live cam plugins for CloudStream 3 (Chaturbate, Stripchat, Cam4, BongaCams, Camsoda)",
     "manifestVersion": 1,
     "pluginLists": [
-        "https://rhoulou.github.io/TotalGirls/plugins.json"
+        "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/plugins.json"
     ]
 }

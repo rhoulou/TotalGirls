@@ -25,9 +25,14 @@ CloudStream 3 ("Install from file"). Or use the one-click page:
 
 - https://rhoulou.github.io/TotalGirls/
 
+Direct repo URL (works without the page):
+
+- https://raw.githubusercontent.com/rhoulou/TotalGirls/main/repo.json
+
 (The page deep-links into CloudStream 3 via the `cloudstreamrepo://` scheme.
-The repo descriptors `repo.json` / `plugins.json` are served from GitHub
-Pages.)
+The repo descriptors `repo.json` / `plugins.json` and the `.cs3` files are
+served from `raw.githubusercontent.com` (git `main`), so updates go live on
+every push.)
 
 ## How it works
 

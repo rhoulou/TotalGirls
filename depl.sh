@@ -7,7 +7,7 @@ cd "$REPO_ROOT"
 ANDROID_HOME="${ANDROID_HOME:-/opt/android-sdk}"
 GRADLE="${GRADLE:-/tmp/opencode/gradle-8.12/bin/gradle}"
 GH_REPO="rhoulou/TotalGirls"
-SITE_URL="https://rhoulou.github.io/TotalGirls"
+SITE_URL="https://raw.githubusercontent.com/rhoulou/TotalGirls/main"
 PROVIDERS=(BongaCamsProvider CamsodaProvider)
 NEW_VERSION="${1:-}"
 
@@ -85,12 +85,11 @@ echo "== Committing and pushing =="
 commit
 push
 
-echo "== Waiting for GitHub Pages deploy (version $EXPECTED) =="
-# Never re-trigger by pushing empty commits here: every push cancels the
-# in-flight Pages deployment. The custom pages workflow deploys in ~1-2 min,
-# so just poll quietly until it goes live.
-for _ in $(seq 1 48); do
-    sleep 15
+echo "== Waiting for raw.githubusercontent.com to serve version $EXPECTED =="
+# raw.githubusercontent.com serves git main directly - the new version is
+# visible as soon as the push propagates (seconds, no deploy pipeline).
+for _ in $(seq 1 12); do
+    sleep 10
     if curl -sk --max-time 20 "$SITE_URL/plugins.json" | \
        python3 -c "import json,sys
 try:
@@ -100,10 +99,10 @@ try:
     sys.exit(0 if len(ok)==2 else 1)
 except Exception:
     sys.exit(1)"; then
-        echo "Deploy live: both providers at v$EXPECTED"
+        echo "Live on raw: both providers at v$EXPECTED"
         exit 0
     fi
 done
 
-echo "ERROR: Pages deploy not live after 12 minutes" >&2
+echo "ERROR: plugins.json not at v$EXPECTED on raw.githubusercontent.com" >&2
 exit 1
