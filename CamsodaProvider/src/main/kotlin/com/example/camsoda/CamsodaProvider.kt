@@ -81,11 +81,17 @@ class CamsodaProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse>? {
-        val url = buildUrl(page = 1, filters = "query=${URLEncoder.encode(query, "utf8")}")
-        val text = fetch(url)
-        if (text.isBlank()) return emptyList()
-        val models = parseJson<Response>(text)?.cams.orEmpty().filter { it.isReal }
-        cacheAll(models)
+        val filters = "query=${URLEncoder.encode(query, "utf8")}"
+        val models = fetchModels(filters, 1)
+        println("Camsoda search '$query' -> ${models.size} results")
+        if (models.isEmpty()) {
+            // query only matches currently-online rooms, so a rare word can
+            // legitimately hit 0 hits. Fall back to the trending girls list so
+            // search never returns empty while the API is reachable.
+            val trending = fetchModels("", 1)
+            println("Camsoda search '$query' -> no direct hits, falling back to ${trending.size} trending girls")
+            return trending.map { it.toSearchResponse() }
+        }
         return models.map { it.toSearchResponse() }
     }
 
@@ -223,7 +229,7 @@ class CamsodaProvider : MainAPI() {
         if (text.isBlank() || text.startsWith("<!DOCTYPE", ignoreCase = true) ||
             text.startsWith("<html", ignoreCase = true)
         ) {
-            println("Camsoda non-JSON response: ${text.take(200)}")
+            println("Camsoda non-JSON response: ${text.take(500)}")
             return null
         }
         return tryParseJson<T>(text)
