@@ -1,9 +1,9 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 6
+version = 7
 
 cloudstream {
     language = "en"
-    description = "Live BongaCams cams (girls only). Lists via the open lemoncams.com API - no Cloudflare cookie wall - and passes the bcvcdn HLS master straight to the player."
+    description = "Live BongaCams cams (girls only). Uses the official bongacams.com listing API through a personal proxy and passes the bcvcdn HLS master straight to the player."
     authors = listOf("rhoulou")
 
     /**
