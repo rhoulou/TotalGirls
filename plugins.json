@@ -12,7 +12,8 @@
         "description": "Live Chaturbate cams (Girls). Scrapes chaturbate.com directly from the phone.",
         "language": "en",
         "tvTypes": [
-            "Live"
+            "Live",
+            "NSFW"
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
@@ -32,7 +33,8 @@
         "description": "Live Stripchat cams (Girls). Scrapes stripchat.com directly from the phone.",
         "language": "en",
         "tvTypes": [
-            "Live"
+            "Live",
+            "NSFW"
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
@@ -52,7 +54,8 @@
         "description": "Live Cam4 cams (Girls). Scrapes cam4.com directly from the phone.",
         "language": "en",
         "tvTypes": [
-            "Live"
+            "Live",
+            "NSFW"
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/cam4.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
@@ -72,7 +75,8 @@
         "description": "Live BongaCams cams (Girls). Uses the official bongacams.com listing API through a personal proxy and passes the bcvcdn HLS master straight to the player.",
         "language": "en",
         "tvTypes": [
-            "Live"
+            "Live",
+            "NSFW"
         ],
         "iconUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcqPE4qe0Lwql6tVNmAmrw3Glpxf8BhJupzsdNiRZ6xw&s=10",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
@@ -92,7 +96,8 @@
         "description": "Live CamSoda cams (Girls). Uses the official camsoda.com API through a personal proxy and passes the livemediahost LL-HLS master straight to the player.",
         "language": "en",
         "tvTypes": [
-            "Live"
+            "Live",
+            "NSFW"
         ],
         "iconUrl": "https://webcamstartup.com/wp-content/uploads/2024/05/PPe3W893RXS7AG2MoYGd_St6ScIFr05xhO0zJ.jpg",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
@@ -112,7 +117,8 @@
         "description": "Live Streamate cams. Scrapes streamate.com directly from the phone - /v4 guest gateway feed, keyword rows and autocomplete search, plus the manifest-server HLS stream passed to the player.",
         "language": "en",
         "tvTypes": [
-            "Live"
+            "Live",
+            "NSFW"
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/streamate.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
