@@ -1,6 +1,6 @@
 [
     {
-        "name": "Chaturbate",
+        "name": "Chaturbate Girls",
         "internalName": "ChaturbateProvider",
         "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateProvider_13.cs3",
         "status": 1,
@@ -21,7 +21,7 @@
         "fileHash": "sha256-d437579774957213a9bc0445d2486f45a0d716e6c767b65cb6be61cb3a3fed29"
     },
     {
-        "name": "Stripchat",
+        "name": "Stripchat Girls",
         "internalName": "StripchatProvider",
         "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatProvider_13.cs3",
         "status": 3,
@@ -105,7 +105,7 @@
         "fileHash": "sha256-44ef5ce995b1f25ad9920021a0df73bc37cda74bcff1424ab10d194fb8814cf4"
     },
     {
-        "name": "Streamate",
+        "name": "Streamate Girls",
         "internalName": "StreamateProvider",
         "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StreamateProvider_13.cs3",
         "status": 3,
