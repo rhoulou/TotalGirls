@@ -1,6 +1,7 @@
 {
     "name": "TotalGirls",
     "description": "Live cam plugins for CloudStream 3 ",
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/logo.png",
     "manifestVersion": 1,
     "pluginLists": [
         "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/plugins.json"
