@@ -124,5 +124,131 @@
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
         "fileSize": 31085,
         "fileHash": "sha256-1f0ad3ef4ac23115aa243e26a65d38ee34a5a842ef9c6f05d999d275422dc104"
+    },
+    {
+        "name": "XHamsterLive Girls",
+        "internalName": "XhamsterliveProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/XhamsterliveProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live XHamsterLive cams (Girls). Scrapes xhamsterlive.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/xhamsterlive.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 34990,
+        "fileHash": "sha256-873d90fe802d9bede1d48eb3e21d8fecc47afafc9edeb0dd69fb568f2d0a799b"
+    },
+    {
+        "name": "FikFapCams Girls",
+        "internalName": "FikfapcamsProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/FikfapcamsProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live FikFapCams cams (Girls). Scrapes fikfapcams.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/fikfapcams.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 34885,
+        "fileHash": "sha256-e260118e8a93497a7d60382250de2a3eb078180f3ddbfc01c23255c978369397"
+    },
+    {
+        "name": "Mestrip Girls",
+        "internalName": "MestripProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/MestripProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Mestrip cams (Girls). Scrapes mestrip.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/mestrip.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 35985,
+        "fileHash": "sha256-794d8d9886b39120fb8f7b534d0ee19c92bfc417d783629086a648b1df6d2bdf"
+    },
+    {
+        "name": "FreeCams Girls",
+        "internalName": "FreecamsProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/FreecamsProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live FreeCams.me cams (Girls). Scrapes freecams.me directly from the phone - roomlist API plus room-page initialRoomDossier HLS extraction.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/freecams.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 27109,
+        "fileHash": "sha256-b513f1c5f758a1dd76415c2e44ba6cfe469d13632673b821c3bab47280526500"
+    },
+    {
+        "name": "Cams.com Girls",
+        "internalName": "CamsProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Cams.com cams (Girls). Scrapes cams.com directly from the phone - __NEXT_DATA__ wonStore listing, camshls HLS master passed to the player.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/cams.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 28908,
+        "fileHash": "sha256-a5e357fb649d3d625086724a03be3166a28fcf4f2dc1154db3a9130b2217fa5c"
+    },
+    {
+        "name": "Sinparty Girls",
+        "internalName": "SinpartyProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/SinpartyProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Sinparty cams (Girls). Scrapes api.sinparty.com directly from the phone - web-rtc listing plus userHash/Streamate/profile HLS resolution.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/sinparty.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 34089,
+        "fileHash": "sha256-d10e5956d328690d783bbc24ec7770eebf1d22dc75e60dcf1a1fc747f2e04ee2"
     }
 ]

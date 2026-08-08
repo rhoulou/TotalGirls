@@ -8,7 +8,7 @@ ANDROID_HOME="${ANDROID_HOME:-/opt/android-sdk}"
 GRADLE="${GRADLE:-/tmp/opencode/gradle-8.12/bin/gradle}"
 GH_REPO="rhoulou/TotalGirls"
 SITE_URL="https://raw.githubusercontent.com/rhoulou/TotalGirls/main"
-PROVIDERS=(BongaCamsProvider CamsodaProvider Cam4Provider ChaturbateProvider StripchatProvider StreamateProvider)
+PROVIDERS=(BongaCamsProvider CamsodaProvider Cam4Provider ChaturbateProvider StripchatProvider StreamateProvider XhamsterliveProvider FikfapcamsProvider MestripProvider FreecamsProvider CamsProvider SinpartyProvider)
 NEW_VERSION="${1:-}"
 
 tasks=()
@@ -132,7 +132,7 @@ verify_served() {
 import json, os, urllib.request, hashlib
 base = os.environ["SITE_URL"]
 expected = int(os.environ["EXPECTED"])
-names = ('BongaCamsProvider', 'CamsodaProvider', 'Cam4Provider', 'ChaturbateProvider', 'StripchatProvider', 'StreamateProvider')
+names = ('BongaCamsProvider', 'CamsodaProvider', 'Cam4Provider', 'ChaturbateProvider', 'StripchatProvider', 'StreamateProvider', 'XhamsterliveProvider', 'FikfapcamsProvider', 'MestripProvider', 'FreecamsProvider', 'CamsProvider', 'SinpartyProvider')
 pj = json.load(urllib.request.urlopen(base + "/plugins.json", timeout=30))
 for p in pj:
     if p['internalName'] not in names:
@@ -156,8 +156,8 @@ for _ in $(seq 1 12); do
 try:
     v=$EXPECTED
     d=json.load(sys.stdin)
-    ok=[p for p in d if p['internalName'] in ('BongaCamsProvider','CamsodaProvider','Cam4Provider','ChaturbateProvider','StripchatProvider','StreamateProvider') and p['version']==v]
-    sys.exit(0 if len(ok)==6 else 1)
+    ok=[p for p in d if p['internalName'] in ('BongaCamsProvider','CamsodaProvider','Cam4Provider','ChaturbateProvider','StripchatProvider','StreamateProvider','XhamsterliveProvider','FikfapcamsProvider','MestripProvider','FreecamsProvider','CamsProvider','SinpartyProvider') and p['version']==v]
+    sys.exit(0 if len(ok)==12 else 1)
 except Exception:
     sys.exit(1)"; then
         echo "Live on raw: all providers at v$EXPECTED"
