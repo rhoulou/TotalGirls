@@ -45,6 +45,15 @@ class CoomerProvider : MainAPI() {
             if (cards.isEmpty()) continue
             rows.add(HomePageList(rowTitle(source), cards.map { it.toSearchResponse() }, true))
         }
+        if (Settings.sources().any { hostOf(it).contains("official.coomer") }) {
+            val models = runCatching { scrapeCoomerModels("${Settings.COOMERVIDEO}/models/") }.getOrElse {
+                println("Coomer getMainPage(models) failed: $it")
+                emptyList()
+            }
+            if (models.isNotEmpty()) {
+                rows.add(HomePageList("CoomerVideo — Top Models", models.take(24).map { it.toSearchResponse() }, true))
+            }
+        }
         if (rows.isEmpty()) return null
         return newHomePageResponse(rows, false)
     }
@@ -61,6 +70,13 @@ class CoomerProvider : MainAPI() {
                 if (card.url.isNotBlank()) deduped.putIfAbsent(card.url, card.toSearchResponse())
             }
         }
+        val models = runCatching { searchModels(query) }.getOrElse {
+            println("Coomer search(models) failed: $it")
+            emptyList()
+        }
+        models.forEach { model ->
+            if (model.url.isNotBlank()) deduped.putIfAbsent(model.url, model)
+        }
         if (deduped.isEmpty()) return null
         return deduped.values.take(50)
     }
@@ -69,6 +85,7 @@ class CoomerProvider : MainAPI() {
         val host = hostOf(url)
         return when {
             host.contains("incestflix") -> loadIncestflix(url)
+            host.contains("official.coomer") && url.contains("/models/") -> loadCoomerModel(url)
             host.contains("official.coomer") -> loadCoomerVideo(url)
             else -> {
                 println("Coomer load: unsupported host $host")
@@ -88,6 +105,13 @@ class CoomerProvider : MainAPI() {
             data.startsWith("VIDEOS::") -> {
                 println("Coomer loadLinks: RESOLVER=VIDEOS")
                 data.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.startsWith("http") }
+            }
+            data.startsWith("http") -> {
+                println("Coomer loadLinks: RESOLVER=URL $data")
+                val response = load(data) ?: return false
+                val episodeData = (response as? TvSeriesLoadResponse)?.episodes?.firstOrNull()?.data ?: return false
+                if (!episodeData.startsWith("VIDEOS::")) return false
+                episodeData.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.startsWith("http") }
             }
             else -> return false
         }
@@ -142,6 +166,10 @@ class CoomerProvider : MainAPI() {
 
     private suspend fun scrapeCoomerVideoCards(url: String): List<Card> {
         val html = fetchText(url) ?: return emptyList()
+        return parseCoomerVideoCards(html, url)
+    }
+
+    private fun parseCoomerVideoCards(html: String, url: String): List<Card> {
         val doc = Jsoup.parse(html, url)
         return doc.select("a.vx-media").mapNotNull { a ->
             val href = a.attr("href").trim()
@@ -156,6 +184,21 @@ class CoomerProvider : MainAPI() {
             val title = a.attr("title").trim()
                 .ifBlank { img?.attr("alt")?.trim().orEmpty() }
             if (title.isBlank()) null else Card(title, thumb, href)
+        }.distinctBy { it.url }
+    }
+
+    private suspend fun scrapeCoomerModels(url: String): List<Card> {
+        val html = fetchText(url) ?: return emptyList()
+        val doc = Jsoup.parse(html, url)
+        return doc.select("a.vx-name[href*='/models/']").mapNotNull { a ->
+            val href = a.absUrl("href").trim()
+            if (href.isBlank()) return@mapNotNull null
+            val title = a.attr("title").trim().ifBlank { a.text().trim() }
+            if (title.isBlank()) return@mapNotNull null
+            val gallery = a.closest("div.vx-card-gallery")
+            val thumb = gallery?.selectFirst("img[data-original]")?.attr("data-original")?.trim()
+                ?: gallery?.selectFirst("img.vx-img[data-webp]")?.attr("data-webp")?.trim()
+            Card(title, thumb, href)
         }.distinctBy { it.url }
     }
 
@@ -199,17 +242,20 @@ class CoomerProvider : MainAPI() {
         val title = doc.selectFirst("title")?.text()
             ?.substringBefore(" - CoomerVideo")?.trim(' ', '-')?.trim()
             ?.takeIf { it.isNotBlank() } ?: "Video"
-        var sources = doc.select("source[src]")
-            .mapNotNull { it.attr("src").trim().takeIf { s -> s.contains("/get_file/") && s.contains(".mp4") } }
-            .distinct()
+        val videoId = Regex("/video/(\\d+)/").find(url)?.groupValues?.get(1)
+        var sources = coomerGetFileUrls(html, videoId)
         if (sources.isEmpty()) {
-            val contentUrl = Regex("\"contentUrl\":\\s*\"(https://[^\"]*get_file[^\"]*\\.mp4[^\"]*)\"")
-                .find(html)?.groupValues?.get(1)?.trim()
-            if (contentUrl.isNullOrBlank()) {
-                println("Coomer loadCoomerVideo: no get_file sources on $url")
-                return null
+            val embedId = videoId ?: Regex("/embed/(\\d+)").find(html)?.groupValues?.get(1)
+            if (embedId != null) {
+                val embedUrl = "https://official.coomer.com.co/embed/$embedId"
+                println("Coomer loadCoomerVideo: no in-page get_file for $url, trying $embedUrl")
+                val embedHtml = fetchText(embedUrl)
+                if (embedHtml != null) sources = coomerGetFileUrls(embedHtml, videoId)
             }
-            sources = listOf(contentUrl)
+        }
+        if (sources.isEmpty()) {
+            println("Coomer loadCoomerVideo: no get_file sources on $url")
+            return null
         }
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")?.trim()
             ?: doc.selectFirst("img[src*='videos_screenshots']")?.attr("src")?.trim()
@@ -222,12 +268,95 @@ class CoomerProvider : MainAPI() {
         }
     }
 
+    private fun coomerGetFileUrls(html: String, videoId: String?): List<String> {
+        val raw = Regex("https?://(?:www\\.)?(?:official\\.)?coomer\\.com\\.co/get_file/[^\"'\\s<>]+")
+            .findAll(html).map { it.value }
+            .filter { it.contains(".mp4") && !it.contains("_preview") }
+            .filter { url ->
+                videoId == null || Regex("get_file/[^/]+/[^/]+/\\d+/$videoId/").containsMatchIn(url)
+            }
+            .distinctBy { it.substringBefore('?') }
+            .toList()
+        val quality = raw.filter { Regex("_\\d{3,4}p\\.mp4").containsMatchIn(it) }
+        return if (quality.isNotEmpty()) quality else raw
+    }
+
+    private suspend fun loadCoomerModel(url: String): LoadResponse? {
+        val normalized = if (url.endsWith("/")) url else "$url/"
+        val first = fetchText(normalized) ?: return null
+        val doc = Jsoup.parse(first, normalized)
+        val name = (doc.selectFirst("h1")?.text() ?: "")
+            .let { Regex("#\\d+\\s*(.*)").find(it)?.groupValues?.get(1)?.trim() ?: it.trim() }
+            .ifBlank { "Model" }
+        val cards = mutableListOf<Card>()
+        cards.addAll(parseCoomerVideoCards(first, normalized))
+        var page = 2
+        while (page <= MAX_MODEL_PAGES && cards.size < MAX_MODEL_EPISODES) {
+            val pageHtml = fetchText("$normalized$page/") ?: break
+            val pageCards = parseCoomerVideoCards(pageHtml, "$normalized$page/")
+            if (pageCards.isEmpty()) break
+            val before = cards.size
+            cards.addAll(pageCards)
+            if (cards.size == before) break
+            page++
+        }
+        val episodes = cards.distinctBy { it.url }.mapIndexed { index, card ->
+            newEpisode(card.url, {
+                this.name = card.title
+                this.posterUrl = card.thumb
+                this.episode = index + 1
+                this.season = 1
+            }, false)
+        }
+        if (episodes.isEmpty()) {
+            println("Coomer loadCoomerModel: no videos on $url")
+            return null
+        }
+        val poster = episodes.firstOrNull { it.posterUrl != null }?.posterUrl
+        return newTvSeriesLoadResponse(name, url, TvType.NSFW, episodes) {
+            this.posterUrl = poster
+        }
+    }
+
+    private suspend fun searchModels(query: String): List<SearchResponse> {
+        val results = LinkedHashMap<String, SearchResponse>()
+        val slug = slugify(query)
+        if (slug.isNotBlank()) {
+            val model = runCatching { loadCoomerModelAsCard("${Settings.COOMERVIDEO}/models/$slug/") }.getOrNull()
+            if (model != null && model.url.isNotBlank()) {
+                println("Coomer searchModels: slug '$slug' -> ${model.title}")
+                results.putIfAbsent(model.url, model.toSearchResponse())
+            }
+        }
+        val top = runCatching { scrapeCoomerModels("${Settings.COOMERVIDEO}/models/") }.getOrNull().orEmpty()
+        top.filter { it.title.contains(query, ignoreCase = true) }
+            .forEach { results.putIfAbsent(it.url, it.toSearchResponse()) }
+        return results.values.toList()
+    }
+
+    private suspend fun loadCoomerModelAsCard(url: String): Card? {
+        val html = fetchText(url) ?: return null
+        val doc = Jsoup.parse(html, url)
+        if (doc.select("a.vx-media[href*='/video/']").isEmpty()) return null
+        val name = (doc.selectFirst("h1")?.text() ?: "")
+            .let { Regex("#\\d+\\s*(.*)").find(it)?.groupValues?.get(1)?.trim() ?: it.trim() }
+            .ifBlank { "Model" }
+        val thumb = doc.selectFirst("img[data-original]")?.attr("data-original")?.trim()
+        return Card(name, thumb, url)
+    }
+
+    private fun slugify(value: String): String =
+        value.lowercase().trim()
+            .replace(Regex("[^a-z0-9]+"), "-")
+            .trim('-')
+
     // ------------------------------------------------------- network helpers
 
     /** Logged fetch: status code, final URL after redirects, content-type and
      *  body size. Retries once, skips Cloudflare/anti-bot pages, never throws. */
     private suspend fun fetchText(url: String): String? {
-        repeat(2) { attempt ->
+        val delays = listOf(600L, 1500L)
+        repeat(3) { attempt ->
             try {
                 val res = app.get(url, headers = headers(url))
                 val code = res.okhttpResponse.code
@@ -246,7 +375,7 @@ class CoomerProvider : MainAPI() {
                 return body
             } catch (e: Exception) {
                 println("Coomer fetch attempt ${attempt + 1} failed for $url: $e")
-                if (attempt == 0) delay(600)
+                if (attempt < delays.size) delay(delays[attempt])
             }
         }
         return null
@@ -283,5 +412,7 @@ class CoomerProvider : MainAPI() {
     companion object {
         private const val BROWSER_UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.7103.48 Safari/537.36"
+        private const val MAX_MODEL_PAGES = 20
+        private const val MAX_MODEL_EPISODES = 240
     }
 }
