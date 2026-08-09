@@ -22,7 +22,11 @@ import java.net.URLEncoder
  *   * Listing -> /catalog/movie/tpdb_catalog{/genre=X|/search=Y|/skip=N}.json
  *   * Video   -> /meta/movie/<id>.json (single meta object with genres, cast
  *                links, runtime, year, background)
- *   * Streams -> /stream/movie/<id>.json (direct url and/or infoHash torrents)
+ *   * Streams -> /stream/movie/<id>.json. Direct URLs are passed straight to
+ *                the player as M3U8/VIDEO links; torrent streams are emitted
+ *                as MAGNET/TORRENT links that the CloudStream app resolves via
+ *                its built-in LibreTorrent server bridge (no client-side
+ *                torrent engine is implemented here).
  */
 class PornTubeProvider : MainAPI() {
     override var mainUrl = Settings.DEFAULT_BASE
@@ -105,12 +109,19 @@ class PornTubeProvider : MainAPI() {
         for (s in streams) {
             val url = s.url?.trim()?.takeIf { it.isNotBlank() }
             if (url != null) {
+                val type = when {
+                    url.contains(".m3u8", ignoreCase = true) -> ExtractorLinkType.M3U8
+                    url.contains(".torrent", ignoreCase = true) || url.startsWith("magnet:") -> ExtractorLinkType.TORRENT
+                    else -> ExtractorLinkType.VIDEO
+                }
+                // Never log full URLs: direct streams may embed debrid tokens/config.
+                println("PornTube loadLinks: $id stream TYPE=$type HOST=${hostOf(url)}")
                 callback.invoke(
                     newExtractorLink(
                         source = "PornTube",
                         name = s.title?.trim()?.takeIf { it.isNotBlank() } ?: "Direct ${qualityLabel(s.title)}",
                         url = url,
-                        type = if (url.contains(".m3u8", ignoreCase = true)) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                        type = type
                     ) {
                         this.quality = qualityOf(s.title)
                         headers = mapOf("User-Agent" to UA, "Referer" to "${base()}/")
@@ -120,12 +131,13 @@ class PornTubeProvider : MainAPI() {
             }
             val infoHash = s.infoHash?.trim()?.takeIf { it.isNotBlank() }
             if (infoHash != null) {
+                println("PornTube loadLinks: $id TYPE=MAGNET INFOHASH=$infoHash")
                 callback.invoke(
                     newExtractorLink(
                         source = "PornTube",
-                        name = "Torrent ${qualityLabel(s.title)}",
+                        name = "Magnet ${qualityLabel(s.title)}",
                         url = "magnet:?xt=urn:btih:$infoHash",
-                        type = ExtractorLinkType.VIDEO
+                        type = ExtractorLinkType.MAGNET
                     ) {
                         this.quality = qualityOf(s.title)
                     }
@@ -134,6 +146,14 @@ class PornTubeProvider : MainAPI() {
             }
         }
         return emitted
+    }
+
+    /** Scheme+host of a URL for debug logging; full URL may contain tokens. */
+    private fun hostOf(url: String): String {
+        val schemeEnd = url.indexOf("://")
+        if (schemeEnd < 0) return url.substringBefore('?')
+        val rest = url.substring(schemeEnd + 3)
+        return url.substring(0, schemeEnd + 3) + rest.substringBefore('/').substringBefore('?')
     }
 
     // ------------------------------------------------------- listing parsing

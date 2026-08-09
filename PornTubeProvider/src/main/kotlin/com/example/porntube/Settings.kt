@@ -54,7 +54,7 @@ object Settings {
         }
 
         val label = TextView(context).apply {
-            text = "API base URL (default: dirty-pink.ers.pw). Paste a tokenized URL (ptube.ers.pw/<config>) to enable debrid direct streams."
+            text = "API base URL (default: dirty-pink.ers.pw). Paste a tokenized URL (ptube.ers.pw/<config>) to enable debrid direct streams. Torrent (Magnet) links require the LibreTorrent app with its server enabled."
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setPadding(0, 0, 0, dp(context, 8))
         }
