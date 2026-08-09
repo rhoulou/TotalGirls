@@ -1,6 +1,7 @@
 rootProject.name = "CloudstreamPlugins"
 
 // Chaturbate + Stripchat + Cam4 + BongaCams + Camsoda + Streamate providers.
+include("CoomerProvider")
 include("PornTubeProvider")
 include("PornhubProvider")
 include("ChaturbateProvider")
