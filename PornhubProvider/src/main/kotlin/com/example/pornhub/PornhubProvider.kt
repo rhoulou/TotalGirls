@@ -76,34 +76,30 @@ class PornhubProvider : MainAPI() {
     ): Boolean {
         val viewkey = viewkeyOf(data) ?: return false
         val html = fetch("$BASE_URL/view_video.php?viewkey=$viewkey") ?: return false
-        val raw = Regex("\"mediaDefinitions\":(\\[.*?\\])", setOf(RegexOption.DOT_MATCHES_ALL))
-            .find(html)?.groupValues?.get(1) ?: return false
+        val raw = extractJsonArray(html, "mediaDefinitions") ?: return false
         val defs = runCatching {
             tryParseJson<List<MediaDefinition>>(raw.replace("&amp;", "&"))
         }.getOrNull() ?: return false
 
         val hls = defs.filter { it.format == "hls" && !it.videoUrl.isNullOrBlank() }
-            .sortedByDescending { it.height ?: 0 }
+            .sortedByDescending { it.qualityNum() }
             .distinctBy { it.videoUrl }
         val mp4 = defs.filter { it.format == "mp4" && !it.videoUrl.isNullOrBlank() }
-            .sortedByDescending { it.height ?: 0 }
+            .sortedByDescending { it.qualityNum() }
             .firstOrNull()
 
         if (hls.isEmpty() && mp4 == null) return false
 
         hls.forEach { def ->
-            val label = def.quality?.takeIf { it.isNotBlank() }
-                ?: def.height?.let { "${it}p" }
-                ?: "Auto"
             callback.invoke(
                 newExtractorLink(
                     source = "Pornhub",
-                    name = label,
+                    name = def.label(),
                     url = def.videoUrl.orEmpty(),
                     type = ExtractorLinkType.M3U8
                 ) {
                     referer = "$BASE_URL/"
-                    quality = def.height ?: Qualities.Unknown.value
+                    quality = def.qualityNum()
                     headers = linkHeaders()
                 }
             )
@@ -112,12 +108,12 @@ class PornhubProvider : MainAPI() {
             callback.invoke(
                 newExtractorLink(
                     source = "Pornhub",
-                    name = "MP4 ${it.height ?: ""}".trim(),
+                    name = "MP4 ${it.label()}",
                     url = it.videoUrl.orEmpty(),
                     type = ExtractorLinkType.VIDEO
                 ) {
                     referer = "$BASE_URL/"
-                    quality = it.height ?: Qualities.Unknown.value
+                    quality = it.qualityNum()
                     headers = linkHeaders()
                 }
             )
@@ -130,19 +126,25 @@ class PornhubProvider : MainAPI() {
     private suspend fun parsePage(url: String): List<VideoCard> {
         val html = fetch(url) ?: return emptyList()
         val anchor = Regex(
-            """<a[^>]*?href="/view_video\.php\?viewkey=([a-zA-Z0-9]+)"[^>]*?title="([^"]*)"[^>]*?>[\s\S]{0,1600}?</a>"""
+            """<a[^>]*?href="/view_video\.php\?viewkey=([a-zA-Z0-9]+)"[^>]*?title="([^"]*)"[^>]*?>[\s\S]{0,6000}?</a>"""
         )
         val poster = Regex("""<(?:img|div)[^>]*?(?:data-src|data-background-image|src)="([^"]*)"""")
-        val cards = mutableListOf<VideoCard>()
+        // Each card has two anchors (title-only + thumbnail-with-img); the first
+        // match wins for the title and a later match fills the poster.
+        val found = LinkedHashMap<String, VideoCard>()
         for (m in anchor.findAll(html)) {
             val vk = m.groupValues[1]
-            if (cards.any { it.viewkey == vk }) continue
             val title = unescape(m.groupValues[2]).trim()
             val img = poster.find(m.groupValues[0])?.groupValues?.get(1)
                 ?.takeIf { it.startsWith("http") }
-            cards.add(VideoCard(vk, title, img))
+            val existing = found[vk]
+            if (existing == null) {
+                found[vk] = VideoCard(vk, title, img)
+            } else if (existing.poster == null && img != null) {
+                found[vk] = existing.copy(poster = img)
+            }
         }
-        return cards
+        return found.values.toList()
     }
 
     private fun VideoCard.toSearchResponse(provider: PornhubProvider): SearchResponse =
@@ -165,6 +167,44 @@ class PornhubProvider : MainAPI() {
 
     private fun viewkeyOf(url: String): String? =
         url.substringAfter("viewkey=", "").substringBefore('&').takeIf { it.isNotBlank() }
+
+    /**
+     * Extract a balanced JSON array for [key] (e.g. "mediaDefinitions"). A
+     * plain non-greedy regex is not enough: entries can contain empty arrays
+     * ("quality":[]) whose closing bracket would truncate the match.
+     */
+    private fun extractJsonArray(html: String, key: String): String? {
+        val start = html.indexOf("\"$key\":")
+        if (start < 0) return null
+        val open = html.indexOf('[', start)
+        if (open < 0) return null
+        var depth = 0
+        var inString = false
+        var escaped = false
+        for (i in open until html.length) {
+            val c = html[i]
+            if (inString) {
+                if (escaped) {
+                    escaped = false
+                } else {
+                    when (c) {
+                        '\\' -> escaped = true
+                        '"' -> inString = false
+                    }
+                }
+            } else {
+                when (c) {
+                    '[' -> depth++
+                    ']' -> {
+                        depth--
+                        if (depth == 0) return html.substring(open, i + 1)
+                    }
+                    '"' -> inString = true
+                }
+            }
+        }
+        return null
+    }
 
     private fun unescape(s: String): String = s
         .replace("&amp;", "&")
@@ -220,11 +260,27 @@ class PornhubProvider : MainAPI() {
 
     private data class MediaDefinition(
         @JsonProperty("format") val format: String? = null,
-        @JsonProperty("quality") val quality: String? = null,
+        @JsonProperty("quality") val quality: Any? = null,
+        @JsonProperty("qualityLabel") val qualityLabel: String? = null,
         @JsonProperty("height") val height: Int? = null,
         @JsonProperty("defaultQuality") val defaultQuality: Boolean? = null,
         @JsonProperty("videoUrl") val videoUrl: String? = null
-    )
+    ) {
+        fun label(): String {
+            qualityLabel?.takeIf { it.isNotBlank() }?.let { return it }
+            val q = (quality as? String)?.takeIf { it.isNotBlank() }
+            if (q != null) return q.let { if (it.all(Char::isDigit)) "${it}P" else it }
+            height?.let { return "${it}P" }
+            return "Auto"
+        }
+
+        fun qualityNum(): Int {
+            qualityLabel?.filter(Char::isDigit)?.toIntOrNull()?.let { return it }
+            ((quality as? String)?.toIntOrNull())?.let { return it }
+            height?.let { return it }
+            return Qualities.Unknown.value
+        }
+    }
 
     companion object {
         private const val BASE_URL = "https://www.pornhub.com"
