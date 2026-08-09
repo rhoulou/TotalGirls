@@ -7,6 +7,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
+import kotlinx.coroutines.delay
 import java.net.URLEncoder
 
 /**
@@ -14,15 +15,16 @@ import java.net.URLEncoder
  *
  * Scrapes www.pornhub.com directly from the phone (no addon server):
  *
- *   * Listing  -> /video (Latest), /video/trending, /video/hot and
- *                 /video/search?search=<query> cards carry
- *                 href="/view_video.php?viewkey=..." anchors.
+ *   * Listing  -> /video, /video/trending, /video/hot, /video?hd=1,
+ *                 /video?o=lg, /video?o=mv and /video/search?search=<query>
+ *                 cards carry href="/view_video.php?viewkey=..." anchors.
  *   * Video    -> /view_video.php?viewkey=<vk> embeds a "mediaDefinitions"
  *                 JSON array (HLS .m3u8 masters per quality, plus an mp4
  *                 fallback) that is passed straight to the player.
  *
- * Pornhub blocks datacenter IPs, so a direct fetch falls back to the
- * proxy.rhoulou.com relay (same as the other providers in this repo).
+ * Pornhub occasionally serves a tiny JS-proof-of-work challenge page instead
+ * of the real listing, so fetches are retried with a short delay and rows are
+ * paced to avoid tripping the rate limiter.
  */
 class PornhubProvider : MainAPI() {
     override var mainUrl = BASE_URL
@@ -33,15 +35,19 @@ class PornhubProvider : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
         if (page <= 1) {
-            val rows = ROWS.mapNotNull { (path, label) ->
+            val rows = mutableListOf<HomePageList>()
+            for ((i, row) in ROWS.withIndex()) {
+                val (path, label) = row
                 val items = parsePage("$BASE_URL$path")
-                if (items.isEmpty()) null
-                else HomePageList(label, items.take(PAGE_SIZE).map { it.toSearchResponse(this) })
+                if (items.isNotEmpty()) {
+                    rows.add(HomePageList(label, items.take(PAGE_SIZE).map { it.toSearchResponse(this) }))
+                }
+                if (i < ROWS.lastIndex) delay(ROW_PACE_MS)
             }
             return newHomePageResponse(rows)
         }
         val spec = ROWS.firstOrNull { it.second == request.name } ?: return null
-        val items = parsePage("$BASE_URL${spec.first}?page=$page")
+        val items = parsePage("$BASE_URL${pageUrl(spec.first, page)}")
         if (items.isEmpty()) return null
         return newHomePageResponse(
             HomePageList(spec.second, items.map { it.toSearchResponse(this) })
@@ -56,10 +62,10 @@ class PornhubProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val viewkey = viewkeyOf(url) ?: return null
-        val html = fetch("$BASE_URL/view_video.php?viewkey=$viewkey")
+        val html = fetchWithRetry("$BASE_URL/view_video.php?viewkey=$viewkey")
         val title = html?.let { unescape(meta(it, "og:title") ?: "") }
             ?.takeIf { it.isNotBlank() } ?: viewkey
-        val poster = html?.let { meta(it, "og:image") }
+        val poster = html?.let { posterFrom(it) }
         val duration = html?.let { parseDuration(it) }
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
@@ -75,7 +81,7 @@ class PornhubProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val viewkey = viewkeyOf(data) ?: return false
-        val html = fetch("$BASE_URL/view_video.php?viewkey=$viewkey") ?: return false
+        val html = fetchWithRetry("$BASE_URL/view_video.php?viewkey=$viewkey") ?: return false
         val raw = extractJsonArray(html, "mediaDefinitions") ?: return false
         val defs = runCatching {
             tryParseJson<List<MediaDefinition>>(raw.replace("&amp;", "&"))
@@ -123,8 +129,20 @@ class PornhubProvider : MainAPI() {
 
     // ------------------------------------------------------- listing parsing
 
+    /** Fetch a listing page, retrying when Pornhub serves a challenge page. */
     private suspend fun parsePage(url: String): List<VideoCard> {
-        val html = fetch(url) ?: return emptyList()
+        repeat(MAX_ATTEMPTS) { attempt ->
+            val html = fetch(url)
+            if (html != null) {
+                val cards = parseCards(html)
+                if (cards.isNotEmpty()) return cards
+            }
+            if (attempt < MAX_ATTEMPTS - 1) delay(RETRY_DELAY_MS)
+        }
+        return emptyList()
+    }
+
+    private fun parseCards(html: String): List<VideoCard> {
         val anchor = Regex(
             """<a[^>]*?href="/view_video\.php\?viewkey=([a-zA-Z0-9]+)"[^>]*?title="([^"]*)"[^>]*?>[\s\S]{0,6000}?</a>"""
         )
@@ -155,9 +173,17 @@ class PornhubProvider : MainAPI() {
     // ------------------------------------------------------- video page
 
     private fun meta(html: String, property: String): String? {
-        val tag = Regex("""<meta[^>]*?property="$property"[^>]*?>""").find(html)?.value
+        val tag = Regex("""<meta[^>]*?(?:property|name)="$property"[^>]*?>""").find(html)?.value
             ?: return null
         return Regex("""content="([^"]*)"""").find(tag)?.groupValues?.get(1)?.let { unescape(it) }
+    }
+
+    /** Poster for the player page: og:image, then twitter:image, then image_src. */
+    private fun posterFrom(html: String): String? {
+        meta(html, "og:image")?.takeIf { it.isNotBlank() }?.let { return it }
+        meta(html, "twitter:image")?.takeIf { it.isNotBlank() }?.let { return it }
+        return Regex("""<link[^>]*?rel="image_src"[^>]*?href="([^"]*)"""").find(html)
+            ?.groupValues?.get(1)
     }
 
     private fun parseDuration(html: String): Int? =
@@ -167,6 +193,20 @@ class PornhubProvider : MainAPI() {
 
     private fun viewkeyOf(url: String): String? =
         url.substringAfter("viewkey=", "").substringBefore('&').takeIf { it.isNotBlank() }
+
+    private fun pageUrl(path: String, page: Int) =
+        "$path${if ('?' in path) '&' else '?'}page=$page"
+
+    /** Fetch a video page, retrying when Pornhub serves a challenge page. */
+    private suspend fun fetchWithRetry(url: String): String? {
+        repeat(MAX_ATTEMPTS) { attempt ->
+            val html = fetch(url)
+            // Real pages are hundreds of KB; the JS challenge is ~1.5KB.
+            if (html != null && html.length > MIN_PAGE_BYTES) return html
+            if (attempt < MAX_ATTEMPTS - 1) delay(RETRY_DELAY_MS)
+        }
+        return null
+    }
 
     /**
      * Extract a balanced JSON array for [key] (e.g. "mediaDefinitions"). A
@@ -218,13 +258,12 @@ class PornhubProvider : MainAPI() {
 
     // ------------------------------------------------------- low level fetch
 
-    /** Try the direct/configured proxy first, then the hardcoded fallback relay. */
+    /** Try direct (or the user-configured proxy) first. */
     private suspend fun fetch(url: String): String? {
         val candidates = mutableListOf<String>()
         val configured = Settings.proxy()
         if (configured.isBlank()) candidates.add(url)
         else candidates.add(configured + URLEncoder.encode(url, "utf8"))
-        candidates.add(FALLBACK_PROXY + URLEncoder.encode(url, "utf8"))
 
         for (target in candidates) {
             try {
@@ -284,15 +323,21 @@ class PornhubProvider : MainAPI() {
 
     companion object {
         private const val BASE_URL = "https://www.pornhub.com"
-        private const val FALLBACK_PROXY = "https://proxy.rhoulou.com:7676/proxy.php?url="
 
         private const val PAGE_SIZE = 30
+        private const val MAX_ATTEMPTS = 2
+        private const val RETRY_DELAY_MS = 800L
+        private const val ROW_PACE_MS = 600L
+        private const val MIN_PAGE_BYTES = 5_000
         private const val UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
         private val ROWS = listOf(
             "/video" to "Latest",
             "/video/trending" to "Trending",
-            "/video/hot" to "Hot"
+            "/video/hot" to "Hot",
+            "/video?hd=1" to "HD",
+            "/video?o=lg" to "Longest",
+            "/video?o=mv" to "Most Viewed"
         )
     }
 }

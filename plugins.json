@@ -2,9 +2,9 @@
     {
         "name": "Pornhub",
         "internalName": "PornhubProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/PornhubProvider_13.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/PornhubProvider_14.cs3",
         "status": 3,
-        "version": 13,
+        "version": 14,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -16,8 +16,8 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/pornhub.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 26665,
-        "fileHash": "sha256-f0c98d4e8ae5f32cfe2f30a9c8682e6b77b05c300d12826c7f97dd0de1710738"
+        "fileSize": 27883,
+        "fileHash": "sha256-e243288101f89a1ca65b6ed7eabb2cae09fc8d1256b6a6ed56fa0cfc70d0d744"
     },
     {
         "name": "Chaturbate Girls",
