@@ -1,5 +1,25 @@
 [
     {
+        "name": "Pornhub",
+        "internalName": "PornhubProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/PornhubProvider_13.cs3",
+        "status": 3,
+        "version": 13,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Pornhub videos (NSFW). Scrapes pornhub.com directly from the phone - home rows and search from the /video listing plus viewkey-page mediaDefinitions HLS/mp4 extraction.",
+        "language": "en",
+        "tvTypes": [
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/pornhub.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 25710,
+        "fileHash": "sha256-d1c49c0d45bef3e3fcb7e224aa0d56aa370e4dbea44aaca8a9be7e53d7ea3056"
+    },
+    {
         "name": "Chaturbate Girls",
         "internalName": "ChaturbateProvider",
         "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateProvider_13.cs3",
