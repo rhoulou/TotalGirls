@@ -8,6 +8,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import kotlinx.coroutines.delay
+import org.jsoup.Jsoup
 import java.net.URLEncoder
 
 /**
@@ -15,22 +16,26 @@ import java.net.URLEncoder
  *
  * Scrapes www.pornhub.com directly from the phone (no addon server):
  *
- *   * Listing  -> /video, /video/trending, /video/hot, /video?hd=1,
- *                 /video?o=lg, /video?o=mv and /video/search?search=<query>
- *                 cards carry href="/view_video.php?viewkey=..." anchors.
+ *   * Listing  -> /video sort rows plus real category pages (/video?c=...,
+ *                 /categories/... and /hd); cards are parsed via jsoup from
+ *                 `li.pcVideoListItem`.
+ *   * Search   -> /video/search?search=<query>
  *   * Video    -> /view_video.php?viewkey=<vk> embeds a "mediaDefinitions"
  *                 JSON array (HLS .m3u8 masters per quality, plus an mp4
  *                 fallback) that is passed straight to the player.
  *
- * Pornhub occasionally serves a tiny JS-proof-of-work challenge page instead
- * of the real listing, so fetches are retried with a short delay and rows are
- * paced to avoid tripping the rate limiter.
+ * Age-gate cookies (hasVisited, accessAgeDisclaimerPH) are sent by default so
+ * the 18+ interstitial is skipped. Pornhub occasionally serves a tiny
+ * JS-proof-of-work challenge page instead of the real listing, so fetches are
+ * retried with a short delay and rows are paced to avoid tripping the rate
+ * limiter.
  */
 class PornhubProvider : MainAPI() {
     override var mainUrl = BASE_URL
     override var name = "Pornhub"
     override val supportedTypes = setOf(TvType.NSFW)
     override val hasMainPage = true
+    override val hasQuickSearch = true
     override var vpnStatus = VPNStatus.MightBeNeeded
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
@@ -62,15 +67,37 @@ class PornhubProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val viewkey = viewkeyOf(url) ?: return null
-        val html = fetchWithRetry("$BASE_URL/view_video.php?viewkey=$viewkey")
-        val title = html?.let { unescape(meta(it, "og:title") ?: "") }
-            ?.takeIf { it.isNotBlank() } ?: viewkey
-        val poster = html?.let { posterFrom(it) }
-        val duration = html?.let { parseDuration(it) }
+        val html = fetchWithRetry("$BASE_URL/view_video.php?viewkey=$viewkey") ?: return null
+        val doc = Jsoup.parse(html)
+        val title = doc.selectFirst("h1")?.text()?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: unescape(meta(html, "og:title") ?: "")
+                ?.takeIf { it.isNotBlank() }
+            ?: viewkey
+        val poster = doc.selectFirst("img.videoElementPoster")?.attr("data-mediumthumb")
+            ?.takeIf { it.startsWith("http") }
+            ?: doc.selectFirst("img.videoElementPoster")?.attr("src")
+                ?.takeIf { it.startsWith("http") }
+            ?: posterFrom(html)
+        val duration = doc.selectFirst("var.duration")?.text()?.let { parseClock(it) }
+            ?: meta(html, "og:video:duration")?.trim()?.toIntOrNull()
+        val plot = doc.selectFirst("meta[property=og:description]")?.attr("content")?.trim()
+            ?.takeIf { it.isNotBlank() }
+        val tags = doc.select("div.tagsWrapper a").mapNotNull { it.text().trim().takeIf(String::isNotBlank) }
+        val actors = doc.select("a.pstar-list-btn").mapNotNull { el ->
+            val name = el.text().trim().takeIf(String::isNotBlank) ?: return@mapNotNull null
+            val avatar = el.selectFirst("img.avatar")?.attr("src")?.takeIf { it.startsWith("http") }
+            ActorData(Actor(name, avatar))
+        }
+        val recommendations = parseCards(html).take(PAGE_SIZE).map { it.toSearchResponse(this) }
+
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            plot = title
+            this.plot = plot ?: title
             this.duration = duration
+            if (tags.isNotEmpty()) this.tags = tags
+            if (actors.isNotEmpty()) this.actors = actors
+            if (recommendations.isNotEmpty()) this.recommendations = recommendations
         }
     }
 
@@ -143,18 +170,20 @@ class PornhubProvider : MainAPI() {
     }
 
     private fun parseCards(html: String): List<VideoCard> {
-        val anchor = Regex(
-            """<a[^>]*?href="/view_video\.php\?viewkey=([a-zA-Z0-9]+)"[^>]*?title="([^"]*)"[^>]*?>[\s\S]{0,6000}?</a>"""
-        )
-        val poster = Regex("""<(?:img|div)[^>]*?(?:data-src|data-background-image|src)="([^"]*)"""")
-        // Each card has two anchors (title-only + thumbnail-with-img); the first
-        // match wins for the title and a later match fills the poster.
+        val doc = Jsoup.parse(html)
+        val els = doc.select("div.gridWrapper li.pcVideoListItem")
+            .let { if (it.isEmpty()) doc.select("li.pcVideoListItem") else it }
         val found = LinkedHashMap<String, VideoCard>()
-        for (m in anchor.findAll(html)) {
-            val vk = m.groupValues[1]
-            val title = unescape(m.groupValues[2]).trim()
-            val img = poster.find(m.groupValues[0])?.groupValues?.get(1)
-                ?.takeIf { it.startsWith("http") }
+        for (el in els) {
+            val anchor = el.selectFirst("a[href*='view_video.php']") ?: continue
+            val vk = anchor.attr("href")
+                .substringAfter("viewkey=", "").substringBefore('&')
+                .takeIf { it.isNotBlank() } ?: continue
+            val title = (el.selectFirst("img")?.attr("alt")?.trim()
+                ?: anchor.attr("title")?.trim()
+                ?: anchor.attr("data-title")?.trim())
+                ?.takeIf { it.isNotBlank() && !DURATION_LIKE.matches(it) } ?: continue
+            val img = el.selectFirst("img")?.attr("src")?.takeIf { it.startsWith("http") }
             val existing = found[vk]
             if (existing == null) {
                 found[vk] = VideoCard(vk, title, img)
@@ -168,6 +197,9 @@ class PornhubProvider : MainAPI() {
     private fun VideoCard.toSearchResponse(provider: PornhubProvider): SearchResponse =
         provider.newMovieSearchResponse(title, "$BASE_URL/view_video.php?viewkey=$viewkey", TvType.NSFW) {
             posterUrl = poster
+            if (poster != null) {
+                posterHeaders = mapOf("Referer" to "$BASE_URL/", "User-Agent" to UA)
+            }
         }
 
     // ------------------------------------------------------- video page
@@ -186,8 +218,16 @@ class PornhubProvider : MainAPI() {
             ?.groupValues?.get(1)
     }
 
-    private fun parseDuration(html: String): Int? =
-        meta(html, "og:video:duration")?.trim()?.toIntOrNull()
+    /** Convert a `<var class="duration">H:MM:SS</var>` / `MM:SS` clock to seconds. */
+    private fun parseClock(text: String): Int? {
+        val parts = text.split(":").mapNotNull { it.trim().toIntOrNull() }
+        if (parts.isEmpty()) return null
+        return when (parts.size) {
+            3 -> parts[0] * 3600 + parts[1] * 60 + parts[2]
+            2 -> parts[0] * 60 + parts[1]
+            else -> parts[0]
+        }
+    }
 
     // ------------------------------------------------------- helpers
 
@@ -284,7 +324,12 @@ class PornhubProvider : MainAPI() {
         put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         put("Accept-Language", "en-US,en;q=0.9")
         put("Upgrade-Insecure-Requests", "1")
-        Settings.cookie().takeIf { it.isNotBlank() }?.let { put("Cookie", it) }
+        val cookie = listOfNotNull(
+            "hasVisited=1",
+            "accessAgeDisclaimerPH=1",
+            Settings.cookie().takeIf { it.isNotBlank() }
+        ).joinToString("; ")
+        if (cookie.isNotBlank()) put("Cookie", cookie)
     }
 
     private fun linkHeaders(): Map<String, String> = mapOf(
@@ -329,7 +374,8 @@ class PornhubProvider : MainAPI() {
         private const val RETRY_DELAY_MS = 800L
         private const val ROW_PACE_MS = 600L
         private const val MIN_PAGE_BYTES = 5_000
-        private const val UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        private val DURATION_LIKE = Regex("""\d+:\d+""")
+        private const val UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
 
         private val ROWS = listOf(
             "/video" to "Latest",
@@ -337,7 +383,23 @@ class PornhubProvider : MainAPI() {
             "/video/hot" to "Hot",
             "/video?hd=1" to "HD",
             "/video?o=lg" to "Longest",
-            "/video?o=mv" to "Most Viewed"
+            "/video?o=mv" to "Most Viewed",
+            "/categories/teen" to "18-25",
+            "/video?c=105" to "60FPS",
+            "/video?c=3" to "Amateur",
+            "/video?c=35" to "Anal",
+            "/video?c=98" to "Arab",
+            "/video?c=1" to "Asian",
+            "/categories/babe" to "Babe",
+            "/video?c=4" to "Big Ass",
+            "/video?c=9" to "Blonde",
+            "/video?c=11" to "Brunette",
+            "/video?c=14" to "Bukkake",
+            "/video?c=241" to "Cosplay",
+            "/video?c=17" to "Ebony",
+            "/hd" to "HD Porn",
+            "/video?c=28" to "Mature",
+            "/video?c=29" to "MILF"
         )
     }
 }
