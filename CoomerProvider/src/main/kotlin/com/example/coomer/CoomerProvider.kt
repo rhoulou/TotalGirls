@@ -83,9 +83,14 @@ class CoomerProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        if (data.startsWith("IMAGES::")) return true
-        if (!data.startsWith("VIDEOS::")) return false
-        val videos = data.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.isNotBlank() }
+        val videos = when {
+            data.startsWith("IMAGES::") -> return true
+            data.startsWith("VIDEOS::") -> {
+                println("Coomer loadLinks: RESOLVER=VIDEOS")
+                data.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.startsWith("http") }
+            }
+            else -> return false
+        }
         if (videos.isEmpty()) return false
         videos.forEachIndexed { index, videoUrl ->
             val quality = Regex("_(\\d{3,4})p\\.mp4").find(videoUrl)?.groupValues?.get(1)?.toIntOrNull()
@@ -105,6 +110,7 @@ class CoomerProvider : MainAPI() {
                 }
             )
         }
+        println("Coomer loadLinks: RESOLVER=VIDEOS emitted ${videos.size} links")
         return true
     }
 
@@ -178,10 +184,10 @@ class CoomerProvider : MainAPI() {
         }
         val poster = doc.selectFirst("video#my-video[poster]")?.attr("poster")?.trim()
             ?.takeIf { it.startsWith("http") }
-        val episode = newEpisode("VIDEOS::$src") {
+        val episode = newEpisode("VIDEOS::$src", {
             this.name = title
             this.posterUrl = poster
-        }
+        }, false)
         return newTvSeriesLoadResponse(title, url, TvType.NSFW, listOf(episode)) {
             this.posterUrl = poster
         }
@@ -193,19 +199,24 @@ class CoomerProvider : MainAPI() {
         val title = doc.selectFirst("title")?.text()
             ?.substringBefore(" - CoomerVideo")?.trim(' ', '-')?.trim()
             ?.takeIf { it.isNotBlank() } ?: "Video"
-        val sources = doc.select("source[src]")
+        var sources = doc.select("source[src]")
             .mapNotNull { it.attr("src").trim().takeIf { s -> s.contains("/get_file/") && s.contains(".mp4") } }
             .distinct()
         if (sources.isEmpty()) {
-            println("Coomer loadCoomerVideo: no get_file sources on $url")
-            return null
+            val contentUrl = Regex("\"contentUrl\":\\s*\"(https://[^\"]*get_file[^\"]*\\.mp4[^\"]*)\"")
+                .find(html)?.groupValues?.get(1)?.trim()
+            if (contentUrl.isNullOrBlank()) {
+                println("Coomer loadCoomerVideo: no get_file sources on $url")
+                return null
+            }
+            sources = listOf(contentUrl)
         }
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")?.trim()
             ?: doc.selectFirst("img[src*='videos_screenshots']")?.attr("src")?.trim()
-        val episode = newEpisode("VIDEOS::" + sources.joinToString("||")) {
+        val episode = newEpisode("VIDEOS::" + sources.joinToString("||"), {
             this.name = title
             this.posterUrl = poster
-        }
+        }, false)
         return newTvSeriesLoadResponse(title, url, TvType.NSFW, listOf(episode)) {
             this.posterUrl = poster
         }
