@@ -1,5 +1,5 @@
 // Use an integer for version numbers - bump it to trigger updates in CS3.
-version = 1
+version = 2
 
 cloudstream {
     language = "en"
@@ -16,5 +16,5 @@ cloudstream {
     status = 3 // beta until you are happy with it
     tvTypes = listOf("NSFW")
 
-    iconUrl = "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/coomer.png"
+    iconUrl = "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/coomer-logo.png"
 }

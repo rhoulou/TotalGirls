@@ -10,21 +10,30 @@ import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jsoup.Jsoup
+import java.io.File
 import java.util.Collections
 
 /**
  * CloudStream 3 provider for the Coomer archive.
  *
  * Creator index is read from a static GitHub snapshot (domain-independent), so
- * browsing/search never depends on the archive host. Profile + posts come from
- * the archive API: {domain}/api/v1/{service}/user/{id}/profile and /posts. The
- * base domain is user-configurable (Settings) - swap in a working mirror when
- * the current domain goes down; media hosts are derived from it.
+ * browsing/search never depends on the archive host. The snapshot is heavy
+ * (~25 MB / ~209k creators), so it is parsed without the HTML parser and cached
+ * to disk in the app cache directory after the first fetch; the home page only
+ * renders a small random sample so it loads instantly and never hits the app's
+ * main-page timeout. Search scans the full cached list.
+ *
+ * Profile + posts come from the archive API:
+ * {domain}/api/v1/{service}/user/{id}/profile and /posts. The base domain is
+ * user-configurable (Settings) - swap in a working mirror when the current
+ * domain goes down; media hosts are derived from it.
  *
  * Photos are skipped (lean port - no custom gallery UI); only video posts are
  * emitted as episodes, each resolved to direct MP4 links in loadLinks. The
@@ -38,11 +47,19 @@ class CoomerProvider : MainAPI() {
     override val hasMainPage = true
     override val supportedTypes = setOf(TvType.NSFW)
 
+    /** The 25 MB snapshot download only happens on the first run - give it room. */
+    override var getMainPageTimeoutMs: Long? = 60_000L
+
+    /** Home shows a light random sample; search covers the whole creator list. */
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
         if (page > 1) return null
         val creators = fetchCreators()
-        if (creators.isEmpty()) return null
-        val rows = creators.shuffled().chunked(4000).mapIndexed { index, group ->
+        if (creators.isEmpty()) {
+            println("Coomer getMainPage: no creators available")
+            return null
+        }
+        val sample = creators.shuffled().take(500)
+        val rows = sample.chunked(50).mapIndexed { index, group ->
             HomePageList(
                 "Creators ${index + 1}",
                 group.map { it.toSearchResponse() },
@@ -136,14 +153,78 @@ class CoomerProvider : MainAPI() {
 
     private suspend fun fetchCreators(): List<Creator> {
         creatorsCache?.let { return it }
-        val raw = runCatching { app.get(CREATORS_URL).textLarge }.getOrNull() ?: return emptyList()
+
+        // 1) fresh disk cache (avoids the 25 MB download on every app start)
+        val file = creatorsFile()
+        val fresh = file?.takeIf {
+            it.exists() && System.currentTimeMillis() - it.lastModified() < CACHE_MAX_AGE_MS
+        }?.let { readCreatorsFromFile(it) }
+        if (!fresh.isNullOrEmpty()) {
+            creatorsCache = fresh
+            return fresh
+        }
+
+        // 2) download + parse once (only happens on first run)
         val parsed = runCatching {
-            val text = Jsoup.parse(raw).body().text()
-            val list: List<Creator> = jacksonObjectMapper().readValue(text)
-            list.filter { it.name.isNotBlank() && it.id.isNotBlank() && it.service.isNotBlank() }
+            val raw = app.get(CREATORS_URL).textLarge
+            parseCreators(raw)
+        }.getOrElse {
+            println("Coomer fetchCreators download/parse failed: $it")
+            emptyList()
+        }
+        if (parsed.isNotEmpty()) {
+            creatorsCache = parsed
+            file?.let { writeCreatorsToFile(it, parsed) }
+            return parsed
+        }
+
+        // 3) stale disk cache as last resort
+        val stale = file?.takeIf { it.exists() }?.let { readCreatorsFromFile(it) }
+        if (!stale.isNullOrEmpty()) {
+            creatorsCache = stale
+            println("Coomer fetchCreators: used stale disk cache (${stale.size} creators)")
+            return stale
+        }
+
+        println("Coomer fetchCreators: no creators (download failed and no cache)")
+        return emptyList()
+    }
+
+    /** Fast path: raw is pure JSON. Jsoup is only a fallback for the rare
+     *  GitHub HTML error page (small payload, so the HTML parse is cheap). */
+    private fun parseCreators(raw: String): List<Creator> {
+        val text = raw.trim()
+        if (text.startsWith("[") || text.startsWith("{")) {
+            return runCatching {
+                jacksonObjectMapper().readValue<List<Creator>>(text)
+            }.getOrNull().orEmpty()
+                .filter { it.name.isNotBlank() && it.id.isNotBlank() && it.service.isNotBlank() }
+        }
+        return runCatching {
+            val body = Jsoup.parse(text).body().text()
+            jacksonObjectMapper().readValue<List<Creator>>(body)
         }.getOrNull().orEmpty()
-        if (parsed.isNotEmpty()) creatorsCache = parsed
-        return parsed
+    }
+
+    private fun creatorsFile(): File? {
+        val ctx = CoomerProviderPlugin.appContext ?: return null
+        return File(ctx.cacheDir, "coomer_creators.json")
+    }
+
+    private suspend fun readCreatorsFromFile(file: File): List<Creator>? {
+        return runCatching {
+            withContext(Dispatchers.IO) { file.readText() }
+        }.getOrNull()?.let { parseCreators(it) }
+    }
+
+    private suspend fun writeCreatorsToFile(file: File, creators: List<Creator>) {
+        runCatching {
+            withContext(Dispatchers.IO) {
+                file.parentFile?.mkdirs()
+                file.writeText(jacksonObjectMapper().writeValueAsString(creators))
+            }
+        }
+        println("Coomer fetchCreators: cached ${creators.size} creators to disk")
     }
 
     private fun Creator.toSearchResponse(): SearchResponse =
@@ -295,6 +376,7 @@ class CoomerProvider : MainAPI() {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.7103.48 Safari/537.36"
         private const val CREATORS_URL =
             "https://raw.githubusercontent.com/Kraptor123/Cs-GizliKeyif/refs/heads/master/.github/commer.json"
+        private const val CACHE_MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
 
         private val postTypeRef: TypeReference<List<Post>> = object : TypeReference<List<Post>>() {}
 
