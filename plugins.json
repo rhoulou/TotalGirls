@@ -392,8 +392,8 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 21997,
-        "fileHash": "sha256-e48f285e8952e5ce183414289c81e53c102ed279ce106037d0d5b18facb653a9"
+        "fileSize": 22432,
+        "fileHash": "sha256-adfcc47f4fb8156bf2ab148c858391aac9dbf2473f980fcb950dbdf82c6a2f41"
     },
     {
         "name": "Stripchat Guys Stremio",
@@ -413,8 +413,8 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 21993,
-        "fileHash": "sha256-f89904c2ec52503797b571543b04854c3ea29c7e3a60cb8d616ff21341c67428"
+        "fileSize": 22429,
+        "fileHash": "sha256-68a57e4e815622a8745f7f1456a97af2f83ccc568cad9fc5a4c8792236d0c20e"
     },
     {
         "name": "Stripchat Trans Stremio",
@@ -434,7 +434,7 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 21978,
-        "fileHash": "sha256-3b7a01af6c10be9a137be9bf214a162d575bc8b7690478305ce403f9f1bd106b"
+        "fileSize": 22405,
+        "fileHash": "sha256-eff6e76b2284cd3495ddd6bd6c33d8ca17a8c7dbd4cd30d26f19fc464fbc9894"
     }
 ]

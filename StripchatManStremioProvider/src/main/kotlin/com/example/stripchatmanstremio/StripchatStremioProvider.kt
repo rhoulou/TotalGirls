@@ -85,7 +85,7 @@ class StripchatStremioProvider : MainAPI() {
         val title = meta.name?.trim()?.takeIf { it.isNotBlank() }
             ?: id.substringAfter(":").ifBlank { id }
         return newLiveStreamLoadResponse(title, url, url) {
-            this.posterUrl = meta.poster
+            this.posterUrl = posterUrlOf(meta.poster)
             this.posterHeaders = mapOf(
                 "Referer" to REFERER,
                 "User-Agent" to UA
@@ -139,7 +139,7 @@ class StripchatStremioProvider : MainAPI() {
         val title = (name ?: id)?.trim()?.takeIf { it.isNotBlank() } ?: return null
         val id = id ?: return null
         return provider.newLiveSearchResponse(title, id, TvType.Live) {
-            this.posterUrl = poster
+            this.posterUrl = posterUrlOf(poster)
             this.posterHeaders = mapOf(
                 "Referer" to REFERER,
                 "User-Agent" to UA
@@ -161,6 +161,24 @@ class StripchatStremioProvider : MainAPI() {
 
     private fun idOf(url: String): String? =
         url.substringAfterLast("/").substringBefore(".json").takeIf { it.isNotBlank() }
+
+    /**
+     * The addon serves posters on img.strpst.com, which no longer resolves; the
+     * live thumbnail host is img.doppiocdn.media. Rebuild the snapshot URL from
+     * the served path (…/thumbs/<snapshotTs>/<modelId>_webp) as
+     * https://img.doppiocdn.media/snapshot/<modelId>/<snapshotTs>.
+     */
+    private fun posterUrlOf(served: String?): String? {
+        if (served.isNullOrBlank()) return null
+        val m = Regex("""thumbs/(\d+)/(\d+)_webp""").find(served)
+        return if (m != null) {
+            val ts = m.groupValues[1]
+            val modelId = m.groupValues[2]
+            "https://img.doppiocdn.media/snapshot/$modelId/$ts"
+        } else {
+            served
+        }
+    }
 
     // ------------------------------------------------------- low level fetch
 
