@@ -16,6 +16,7 @@ include("Cam4Provider")
 include("BongaCamsProvider")
 include("CamsodaProvider")
 include("StreamateProvider")
+include("ViralXxxProvider")
 // Doppiocam-family + room-scrape + wonStore + web-rtc providers.
 include("XhamsterliveProvider")
 include("FikfapcamsProvider")

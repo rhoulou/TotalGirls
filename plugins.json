@@ -1,440 +1,460 @@
 [
-    {
-        "name": "Coomer",
-        "internalName": "CoomerProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CoomerProvider_6.cs3",
-        "status": 3,
-        "version": 6,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Coomer (NSFW) - scrapes the IncestFlix (incestflix.com.co) and CoomerVideo (official.coomer.com.co) mirrors: home rows, merged search, direct MP4 links, switchable sources (mixed/one), Coomer /models/ exposed as virtual series (episodes keep original titles).",
-        "language": "en",
-        "tvTypes": [
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/coomer-logo.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 33413,
-        "fileHash": "sha256-acfe30218d34ef6ba33866d4851600b4335e8e8041e3cddf4a288d608b4241a0"
-    },
-    {
-        "name": "PornTube",
-        "internalName": "PornTubeProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/PornTubeProvider_2.cs3",
-        "status": 3,
-        "version": 2,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "PornTube videos (NSFW). Bridges the PornTube Stremio addon (catalog/meta/stream) - New + genre rows, search, full metadata, plus direct (M3U8/MP4) and torrent (Magnet) stream links resolved by the app's LibreTorrent bridge.",
-        "language": "en",
-        "tvTypes": [
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ptube.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 29409,
-        "fileHash": "sha256-0519cda75bdf0367c9192de913e02cbc6b6ec96b18df935b9d436d35595a610e"
-    },
-    {
-        "name": "Pornhub",
-        "internalName": "PornhubProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/PornhubProvider_15.cs3",
-        "status": 3,
-        "version": 15,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Pornhub videos (NSFW). Scrapes pornhub.com directly from the phone - 22 home rows (sort + real categories), quick search, jsoup card parsing, age-gate cookie bypass and viewkey-page mediaDefinitions HLS/mp4 extraction.",
-        "language": "en",
-        "tvTypes": [
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/pornhub.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 30919,
-        "fileHash": "sha256-0927b3a4af1b78cabe683fd2ccd347c26b4a64657559c9e9edd2704993b0119a"
-    },
-    {
-        "name": "Chaturbate Girls",
-        "internalName": "ChaturbateProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateProvider_13.cs3",
-        "status": 1,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Chaturbate cams (Girls). Scrapes chaturbate.com directly from the phone.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 36585,
-        "fileHash": "sha256-d437579774957213a9bc0445d2486f45a0d716e6c767b65cb6be61cb3a3fed29"
-    },
-    {
-        "name": "Stripchat Girls",
-        "internalName": "StripchatProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Stripchat cams (Girls). Scrapes stripchat.com directly from the phone.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 41421,
-        "fileHash": "sha256-84ea80aa6c6fcfe77b8d857f4838d6b5fe39d99e2ebc62a12de6286c05cd57bd"
-    },
-    {
-        "name": "Cam4 Girls",
-        "internalName": "Cam4Provider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/Cam4Provider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Cam4 cams (Girls). Scrapes cam4.com directly from the phone.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/cam4.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 39580,
-        "fileHash": "sha256-da792a859f4141fce1b1e55279dd92e2a6745804261ec3da1a616630aef706a7"
-    },
-    {
-        "name": "BongaCams Girls",
-        "internalName": "BongaCamsProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/BongaCamsProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live BongaCams cams (Girls). Uses the official bongacams.com listing API through a personal proxy and passes the bcvcdn HLS master straight to the player.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/bongacams.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 31229,
-        "fileHash": "sha256-725fed5a462661a9c91edc3b0a1353dbdbb769ebf6a0d40de4f779228395e08c"
-    },
-    {
-        "name": "Camsoda Girls",
-        "internalName": "CamsodaProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsodaProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live CamSoda cams (Girls). Uses the official camsoda.com API through a personal proxy and passes the livemediahost LL-HLS master straight to the player.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/camsoda.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 36797,
-        "fileHash": "sha256-44ef5ce995b1f25ad9920021a0df73bc37cda74bcff1424ab10d194fb8814cf4"
-    },
-    {
-        "name": "Streamate Girls",
-        "internalName": "StreamateProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StreamateProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Streamate cams. Scrapes streamate.com directly from the phone - /v4 guest gateway feed, keyword rows and autocomplete search, plus the manifest-server HLS stream passed to the player.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/streamate.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 31085,
-        "fileHash": "sha256-1f0ad3ef4ac23115aa243e26a65d38ee34a5a842ef9c6f05d999d275422dc104"
-    },
-    {
-        "name": "XHamsterLive Girls",
-        "internalName": "XhamsterliveProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/XhamsterliveProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live XHamsterLive cams (Girls). Scrapes xhamsterlive.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/xhamsterlive.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 34990,
-        "fileHash": "sha256-873d90fe802d9bede1d48eb3e21d8fecc47afafc9edeb0dd69fb568f2d0a799b"
-    },
-    {
-        "name": "FikFapCams Girls",
-        "internalName": "FikfapcamsProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/FikfapcamsProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live FikFapCams cams (Girls). Scrapes fikfapcams.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/fikfapcams.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 34885,
-        "fileHash": "sha256-e260118e8a93497a7d60382250de2a3eb078180f3ddbfc01c23255c978369397"
-    },
-    {
-        "name": "Mestrip Girls",
-        "internalName": "MestripProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/MestripProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Mestrip cams (Girls). Scrapes mestrip.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/mestrip.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 35985,
-        "fileHash": "sha256-794d8d9886b39120fb8f7b534d0ee19c92bfc417d783629086a648b1df6d2bdf"
-    },
-    {
-        "name": "FreeCams Girls",
-        "internalName": "FreecamsProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/FreecamsProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live FreeCams.me cams (Girls). Scrapes freecams.me directly from the phone - roomlist API plus room-page initialRoomDossier HLS extraction.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/freecams.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 27109,
-        "fileHash": "sha256-b513f1c5f758a1dd76415c2e44ba6cfe469d13632673b821c3bab47280526500"
-    },
-    {
-        "name": "Cams.com Girls",
-        "internalName": "CamsProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Cams.com cams (Girls). Scrapes cams.com directly from the phone - __NEXT_DATA__ wonStore listing, camshls HLS master passed to the player.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/cams.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 28908,
-        "fileHash": "sha256-a5e357fb649d3d625086724a03be3166a28fcf4f2dc1154db3a9130b2217fa5c"
-    },
-    {
-        "name": "Sinparty Girls",
-        "internalName": "SinpartyProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/SinpartyProvider_13.cs3",
-        "status": 3,
-        "version": 13,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Sinparty cams (Girls). Scrapes api.sinparty.com directly from the phone - web-rtc listing plus userHash/Streamate/profile HLS resolution.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/sinparty.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 34089,
-        "fileHash": "sha256-d10e5956d328690d783bbc24ec7770eebf1d22dc75e60dcf1a1fc747f2e04ee2"
-    },
-    {
-        "name": "Chaturbate Girls Stremio",
-        "internalName": "ChaturbateFStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateFStremioProvider_1.cs3",
-        "status": 3,
-        "version": 1,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Chaturbate Girls cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 25319,
-        "fileHash": "sha256-cd574a057e4004aa8f7a45d07ecff018961877b457f904452e82cc11c3b452ed"
-    },
-    {
-        "name": "Chaturbate Guys Stremio",
-        "internalName": "ChaturbateMStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateMStremioProvider_1.cs3",
-        "status": 3,
-        "version": 1,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Chaturbate Guys cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 25315,
-        "fileHash": "sha256-02387bf9ebd03887a41864b2665fe91454273575e48923407bf945d5c1bdc034"
-    },
-    {
-        "name": "Chaturbate Trans Stremio",
-        "internalName": "ChaturbateTStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateTStremioProvider_1.cs3",
-        "status": 3,
-        "version": 1,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Chaturbate Trans cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 25293,
-        "fileHash": "sha256-a165d84eae10999d793e63c3a379c9df39c1b143d446eefc9df293ec31ca9087"
-    },
-    {
-        "name": "Stripchat Girls Stremio",
-        "internalName": "StripchatGirlsStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatGirlsStremioProvider_2.cs3",
-        "status": 3,
-        "version": 2,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Stripchat Girls cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/girls) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 22432,
-        "fileHash": "sha256-9dc2b102e8dcf39c5a17590f4ee5c2c6746edde4ff8dd5b8735c76bab975029a"
-    },
-    {
-        "name": "Stripchat Guys Stremio",
-        "internalName": "StripchatManStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatManStremioProvider_2.cs3",
-        "status": 3,
-        "version": 2,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Stripchat Guys cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/men) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 22429,
-        "fileHash": "sha256-5f393a7ab096b83b4607aa3adefa607d62992bacb0d455d821fbb7a05fb6fcf7"
-    },
-    {
-        "name": "Stripchat Trans Stremio",
-        "internalName": "StripchatTransStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatTransStremioProvider_2.cs3",
-        "status": 3,
-        "version": 2,
-        "apiVersion": 1,
-        "authors": [
-            "rhoulou"
-        ],
-        "description": "Live Stripchat Trans cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/trans) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
-        "language": "en",
-        "tvTypes": [
-            "Live",
-            "NSFW"
-        ],
-        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
-        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 22406,
-        "fileHash": "sha256-d44002eb3300ba4346b62234ffc51eb47fdbed8e8bbe334a2a19ce6116f348bc"
-    }
+  {
+    "name": "Coomer",
+    "internalName": "CoomerProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CoomerProvider_6.cs3",
+    "status": 3,
+    "version": 6,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Coomer (NSFW) - scrapes the IncestFlix (incestflix.com.co) and CoomerVideo (official.coomer.com.co) mirrors: home rows, merged search, direct MP4 links, switchable sources (mixed/one), Coomer /models/ exposed as virtual series (episodes keep original titles).",
+    "language": "en",
+    "tvTypes": [
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/coomer-logo.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 33413,
+    "fileHash": "sha256-acfe30218d34ef6ba33866d4851600b4335e8e8041e3cddf4a288d608b4241a0"
+  },
+  {
+    "name": "PornTube",
+    "internalName": "PornTubeProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/PornTubeProvider_2.cs3",
+    "status": 3,
+    "version": 2,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "PornTube videos (NSFW). Bridges the PornTube Stremio addon (catalog/meta/stream) - New + genre rows, search, full metadata, plus direct (M3U8/MP4) and torrent (Magnet) stream links resolved by the app's LibreTorrent bridge.",
+    "language": "en",
+    "tvTypes": [
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ptube.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 29409,
+    "fileHash": "sha256-0519cda75bdf0367c9192de913e02cbc6b6ec96b18df935b9d436d35595a610e"
+  },
+  {
+    "name": "Pornhub",
+    "internalName": "PornhubProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/PornhubProvider_15.cs3",
+    "status": 3,
+    "version": 15,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Pornhub videos (NSFW). Scrapes pornhub.com directly from the phone - 22 home rows (sort + real categories), quick search, jsoup card parsing, age-gate cookie bypass and viewkey-page mediaDefinitions HLS/mp4 extraction.",
+    "language": "en",
+    "tvTypes": [
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/pornhub.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 30919,
+    "fileHash": "sha256-0927b3a4af1b78cabe683fd2ccd347c26b4a64657559c9e9edd2704993b0119a"
+  },
+  {
+    "name": "Chaturbate Girls",
+    "internalName": "ChaturbateProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateProvider_13.cs3",
+    "status": 1,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Chaturbate cams (Girls). Scrapes chaturbate.com directly from the phone.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 36585,
+    "fileHash": "sha256-d437579774957213a9bc0445d2486f45a0d716e6c767b65cb6be61cb3a3fed29"
+  },
+  {
+    "name": "Stripchat Girls",
+    "internalName": "StripchatProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Stripchat cams (Girls). Scrapes stripchat.com directly from the phone.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 41421,
+    "fileHash": "sha256-84ea80aa6c6fcfe77b8d857f4838d6b5fe39d99e2ebc62a12de6286c05cd57bd"
+  },
+  {
+    "name": "Cam4 Girls",
+    "internalName": "Cam4Provider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/Cam4Provider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Cam4 cams (Girls). Scrapes cam4.com directly from the phone.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/cam4.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 39580,
+    "fileHash": "sha256-da792a859f4141fce1b1e55279dd92e2a6745804261ec3da1a616630aef706a7"
+  },
+  {
+    "name": "BongaCams Girls",
+    "internalName": "BongaCamsProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/BongaCamsProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live BongaCams cams (Girls). Uses the official bongacams.com listing API through a personal proxy and passes the bcvcdn HLS master straight to the player.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/bongacams.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 31229,
+    "fileHash": "sha256-725fed5a462661a9c91edc3b0a1353dbdbb769ebf6a0d40de4f779228395e08c"
+  },
+  {
+    "name": "Camsoda Girls",
+    "internalName": "CamsodaProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsodaProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live CamSoda cams (Girls). Uses the official camsoda.com API through a personal proxy and passes the livemediahost LL-HLS master straight to the player.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/camsoda.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 36797,
+    "fileHash": "sha256-44ef5ce995b1f25ad9920021a0df73bc37cda74bcff1424ab10d194fb8814cf4"
+  },
+  {
+    "name": "Streamate Girls",
+    "internalName": "StreamateProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StreamateProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Streamate cams. Scrapes streamate.com directly from the phone - /v4 guest gateway feed, keyword rows and autocomplete search, plus the manifest-server HLS stream passed to the player.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/streamate.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 31085,
+    "fileHash": "sha256-1f0ad3ef4ac23115aa243e26a65d38ee34a5a842ef9c6f05d999d275422dc104"
+  },
+  {
+    "name": "XHamsterLive Girls",
+    "internalName": "XhamsterliveProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/XhamsterliveProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live XHamsterLive cams (Girls). Scrapes xhamsterlive.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/xhamsterlive.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 34990,
+    "fileHash": "sha256-873d90fe802d9bede1d48eb3e21d8fecc47afafc9edeb0dd69fb568f2d0a799b"
+  },
+  {
+    "name": "FikFapCams Girls",
+    "internalName": "FikfapcamsProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/FikfapcamsProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live FikFapCams cams (Girls). Scrapes fikfapcams.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/fikfapcams.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 34885,
+    "fileHash": "sha256-e260118e8a93497a7d60382250de2a3eb078180f3ddbfc01c23255c978369397"
+  },
+  {
+    "name": "Mestrip Girls",
+    "internalName": "MestripProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/MestripProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Mestrip cams (Girls). Scrapes mestrip.com directly from the phone - doppiocdn posters, saawsedge HLS master passed to the player.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/mestrip.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 35985,
+    "fileHash": "sha256-794d8d9886b39120fb8f7b534d0ee19c92bfc417d783629086a648b1df6d2bdf"
+  },
+  {
+    "name": "FreeCams Girls",
+    "internalName": "FreecamsProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/FreecamsProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live FreeCams.me cams (Girls). Scrapes freecams.me directly from the phone - roomlist API plus room-page initialRoomDossier HLS extraction.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/freecams.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 27109,
+    "fileHash": "sha256-b513f1c5f758a1dd76415c2e44ba6cfe469d13632673b821c3bab47280526500"
+  },
+  {
+    "name": "Cams.com Girls",
+    "internalName": "CamsProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Cams.com cams (Girls). Scrapes cams.com directly from the phone - __NEXT_DATA__ wonStore listing, camshls HLS master passed to the player.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/cams.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 28908,
+    "fileHash": "sha256-a5e357fb649d3d625086724a03be3166a28fcf4f2dc1154db3a9130b2217fa5c"
+  },
+  {
+    "name": "Sinparty Girls",
+    "internalName": "SinpartyProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/SinpartyProvider_13.cs3",
+    "status": 3,
+    "version": 13,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Sinparty cams (Girls). Scrapes api.sinparty.com directly from the phone - web-rtc listing plus userHash/Streamate/profile HLS resolution.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/sinparty.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 34089,
+    "fileHash": "sha256-d10e5956d328690d783bbc24ec7770eebf1d22dc75e60dcf1a1fc747f2e04ee2"
+  },
+  {
+    "name": "Chaturbate Girls Stremio",
+    "internalName": "ChaturbateFStremioProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateFStremioProvider_1.cs3",
+    "status": 3,
+    "version": 1,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Chaturbate Girls cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 25319,
+    "fileHash": "sha256-cd574a057e4004aa8f7a45d07ecff018961877b457f904452e82cc11c3b452ed"
+  },
+  {
+    "name": "Chaturbate Guys Stremio",
+    "internalName": "ChaturbateMStremioProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateMStremioProvider_1.cs3",
+    "status": 3,
+    "version": 1,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Chaturbate Guys cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 25315,
+    "fileHash": "sha256-02387bf9ebd03887a41864b2665fe91454273575e48923407bf945d5c1bdc034"
+  },
+  {
+    "name": "Chaturbate Trans Stremio",
+    "internalName": "ChaturbateTStremioProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateTStremioProvider_1.cs3",
+    "status": 3,
+    "version": 1,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Chaturbate Trans cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 25293,
+    "fileHash": "sha256-a165d84eae10999d793e63c3a379c9df39c1b143d446eefc9df293ec31ca9087"
+  },
+  {
+    "name": "Stripchat Girls Stremio",
+    "internalName": "StripchatGirlsStremioProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatGirlsStremioProvider_2.cs3",
+    "status": 3,
+    "version": 2,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Stripchat Girls cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/girls) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 22432,
+    "fileHash": "sha256-9dc2b102e8dcf39c5a17590f4ee5c2c6746edde4ff8dd5b8735c76bab975029a"
+  },
+  {
+    "name": "Stripchat Guys Stremio",
+    "internalName": "StripchatManStremioProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatManStremioProvider_2.cs3",
+    "status": 3,
+    "version": 2,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Stripchat Guys cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/men) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 22429,
+    "fileHash": "sha256-5f393a7ab096b83b4607aa3adefa607d62992bacb0d455d821fbb7a05fb6fcf7"
+  },
+  {
+    "name": "Stripchat Trans Stremio",
+    "internalName": "StripchatTransStremioProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatTransStremioProvider_2.cs3",
+    "status": 3,
+    "version": 2,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "Live Stripchat Trans cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/trans) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
+    "language": "en",
+    "tvTypes": [
+      "Live",
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 22406,
+    "fileHash": "sha256-d44002eb3300ba4346b62234ffc51eb47fdbed8e8bbe334a2a19ce6116f348bc"
+  },
+  {
+    "name": "ViralXXXPorn",
+    "internalName": "ViralXxxProvider",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ViralXxxProvider_1.cs3",
+    "status": 3,
+    "version": 1,
+    "apiVersion": 1,
+    "authors": [
+      "rhoulou"
+    ],
+    "description": "ViralXXXPorn (NSFW). Model profiles as series with video episodes, latest-updates and categories rows, search and direct quality MP4 links.",
+    "language": "en",
+    "tvTypes": [
+      "NSFW"
+    ],
+    "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/viralxxxporn.png",
+    "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+    "fileSize": 27883,
+    "fileHash": "sha256-16592efe77d0138a778157db676cdc88715a3eae8b1d570cad1827c4f4358d06"
+  }
 ]
