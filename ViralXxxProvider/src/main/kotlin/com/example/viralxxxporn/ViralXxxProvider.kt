@@ -116,25 +116,58 @@ class ViralXxxProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+        val dataPreview = data.take(200)
+        println("ViralXxx loadLinks: RECEIVED data len=${data.length} head=\"$dataPreview\"")
         val videos = when {
             data.startsWith("VIDEOS::") -> {
                 println("ViralXxx loadLinks: RESOLVER=VIDEOS")
-                data.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.startsWith("http") }
+                val urls = data.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.startsWith("http") }
+                println("ViralXxx loadLinks: VIDEOS:: parsed ${urls.size} candidate url(s) from ${data.length} chars")
+                urls.forEachIndexed { i, u ->
+                    val valid = u.startsWith("https://") && u.contains(".mp4")
+                    println("ViralXxx loadLinks:   parsed[$i] valid=$valid head=\"${u.take(120)}\"")
+                }
+                urls
             }
             data.startsWith("http") -> {
                 println("ViralXxx loadLinks: RESOLVER=URL $data")
-                val response = load(data) ?: return false
-                val episodeData = (response as? TvSeriesLoadResponse)?.episodes?.firstOrNull()?.data ?: return false
-                if (!episodeData.startsWith("VIDEOS::")) return false
-                episodeData.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.startsWith("http") }
+                val response = load(data) ?: run {
+                    println("ViralXxx loadLinks: load($data) returned null")
+                    return false
+                }
+                val episodeData = (response as? TvSeriesLoadResponse)?.episodes?.firstOrNull()?.data
+                if (episodeData.isNullOrBlank() || !episodeData.startsWith("VIDEOS::")) {
+                    println("ViralXxx loadLinks: episode data did not start with VIDEOS:: -> data=\"${episodeData?.take(200)}\"")
+                    return false
+                }
+                println("ViralXxx loadLinks: URL branch resolved VIDEOS:: len=${episodeData.length}")
+                val urls = episodeData.removePrefix("VIDEOS::").split("||").map { it.trim() }.filter { it.startsWith("http") }
+                println("ViralXxx loadLinks: URL branch parsed ${urls.size} candidate url(s)")
+                urls.forEachIndexed { i, u ->
+                    val valid = u.startsWith("https://") && u.contains(".mp4")
+                    println("ViralXxx loadLinks:   parsed[$i] valid=$valid head=\"${u.take(120)}\"")
+                }
+                urls
             }
-            else -> return false
+            else -> {
+                println("ViralXxx loadLinks: UNSUPPORTED data head=\"$dataPreview\"")
+                return false
+            }
         }
-        if (videos.isEmpty()) return false
+        if (videos.isEmpty()) {
+            println("ViralXxx loadLinks: 0 valid links after parsing/filtering -> return false")
+            return false
+        }
+        var emitted = 0
         videos.forEach { videoUrl ->
+            val valid = videoUrl.startsWith("https://") && videoUrl.contains(".mp4")
             val quality = Regex("_(\\d{3,4})p\\.mp4").find(videoUrl)?.groupValues?.get(1)?.toIntOrNull()
             val label = quality?.let { "${it}p" } ?: "Video"
-            println("ViralXxx loadLinks: VIDEO HOST=${hostOf(videoUrl)} quality=${quality ?: "?"}")
+            println("ViralXxx loadLinks: EMIT valid=$valid HOST=${hostOf(videoUrl)} quality=${quality ?: "?"} head=\"${videoUrl.take(120)}\"")
+            if (!valid) {
+                println("ViralXxx loadLinks: SKIP invalid url head=\"${videoUrl.take(120)}\"")
+                return@forEach
+            }
             callback.invoke(
                 newExtractorLink(
                     source = "ViralXXXPorn",
@@ -149,9 +182,10 @@ class ViralXxxProvider : MainAPI() {
                     )
                 }
             )
+            emitted++
         }
-        println("ViralXxx loadLinks: emitted ${videos.size} links")
-        return true
+        println("ViralXxx loadLinks: DONE emitted=$emitted of ${videos.size} -> ${if (emitted > 0) "return true" else "return false"}")
+        return emitted > 0
     }
 
     // ------------------------------------------------------- scraping
@@ -330,7 +364,7 @@ class ViralXxxProvider : MainAPI() {
     /** All direct quality MP4s from the video page `flashvars` block. */
     private fun viralGetFileUrls(html: String): List<String> {
         val raw = Regex("""video_(?:url|alt_url|alt_url2)\s*:\s*'(https://viralxxxporn.com/get_file/[^']+)'""")
-            .findAll(html).map { it.value }
+            .findAll(html).map { it.groupValues[1] }
             .filter { it.contains(".mp4") && !it.contains("_preview") }
             .distinctBy { it.substringBefore('?') }
             .toList()
