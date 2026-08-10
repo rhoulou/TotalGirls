@@ -237,28 +237,52 @@ class CoomerProvider : MainAPI() {
     }
 
     private suspend fun loadCoomerVideo(url: String): LoadResponse? {
-        val html = fetchText(url) ?: return null
+        val videoId = Regex("/video/(\\d+)/").find(url)?.groupValues?.get(1)
+        println("Coomer loadCoomerVideo: start url=$url videoId=$videoId")
+        val html = fetchText(url)
+        if (html == null) {
+            println("Coomer loadCoomerVideo: fetchText returned null (blocked/throttled/HTTP error) for $url -> load() NULL")
+            return null
+        }
         val doc = Jsoup.parse(html, url)
         val title = doc.selectFirst("title")?.text()
             ?.substringBefore(" - CoomerVideo")?.trim(' ', '-')?.trim()
             ?.takeIf { it.isNotBlank() } ?: "Video"
-        val videoId = Regex("/video/(\\d+)/").find(url)?.groupValues?.get(1)
+        println("Coomer loadCoomerVideo: title=\"$title\" htmlChars=${html.length}")
         var sources = coomerGetFileUrls(html, videoId)
+        println("Coomer loadCoomerVideo: in-page get_file count=${sources.size} for $url")
         if (sources.isEmpty()) {
             val embedId = videoId ?: Regex("/embed/(\\d+)").find(html)?.groupValues?.get(1)
             if (embedId != null) {
-                val embedUrl = "https://official.coomer.com.co/embed/$embedId"
+                val embedUrl = "${Settings.COOMERVIDEO}/embed/$embedId"
                 println("Coomer loadCoomerVideo: no in-page get_file for $url, trying $embedUrl")
                 val embedHtml = fetchText(embedUrl)
-                if (embedHtml != null) sources = coomerGetFileUrls(embedHtml, videoId)
+                val embedSources = if (embedHtml != null) coomerGetFileUrls(embedHtml, videoId) else emptyList()
+                println("Coomer loadCoomerVideo: embed get_file count=${embedSources.size} (embedHtml=${embedHtml != null})")
+                if (embedSources.isNotEmpty()) sources = embedSources
+            } else {
+                println("Coomer loadCoomerVideo: no in-page get_file and no embedId found on $url")
             }
         }
         if (sources.isEmpty()) {
-            println("Coomer loadCoomerVideo: no get_file sources on $url")
+            println("Coomer loadCoomerVideo: sources empty after in-page+embed, retrying video page once after delay for $url")
+            delay(1000)
+            val retryHtml = fetchText(url)
+            if (retryHtml != null) {
+                val retrySources = coomerGetFileUrls(retryHtml, videoId)
+                println("Coomer loadCoomerVideo: retry get_file count=${retrySources.size}")
+                if (retrySources.isNotEmpty()) sources = retrySources
+            } else {
+                println("Coomer loadCoomerVideo: retry fetchText also returned null for $url")
+            }
+        }
+        if (sources.isEmpty()) {
+            println("Coomer loadCoomerVideo: NO SOURCES after in-page+embed+retry for $url -> load() NULL")
             return null
         }
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")?.trim()
             ?: doc.selectFirst("img[src*='videos_screenshots']")?.attr("src")?.trim()
+        println("Coomer loadCoomerVideo: OK sources=${sources.size} poster=${poster != null} for $url")
         val episode = newEpisode("VIDEOS::" + sources.joinToString("||"), {
             this.name = title
             this.posterUrl = poster

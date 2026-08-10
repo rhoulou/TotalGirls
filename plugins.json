@@ -2,9 +2,9 @@
     {
         "name": "Coomer",
         "internalName": "CoomerProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CoomerProvider_5.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CoomerProvider_6.cs3",
         "status": 3,
-        "version": 5,
+        "version": 6,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -16,8 +16,8 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/coomer-logo.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 32434,
-        "fileHash": "sha256-2f99001b38df9dde7622c710d7cfe8fc62e676f31c991b7beabf0d6cc168bbc8"
+        "fileSize": 33413,
+        "fileHash": "sha256-acfe30218d34ef6ba33866d4851600b4335e8e8041e3cddf4a288d608b4241a0"
     },
     {
         "name": "PornTube",
@@ -310,5 +310,131 @@
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
         "fileSize": 34089,
         "fileHash": "sha256-d10e5956d328690d783bbc24ec7770eebf1d22dc75e60dcf1a1fc747f2e04ee2"
+    },
+    {
+        "name": "Chaturbate Girls Stremio",
+        "internalName": "ChaturbateFStremioProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateFStremioProvider_1.cs3",
+        "status": 3,
+        "version": 1,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Chaturbate Girls cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 25319,
+        "fileHash": "sha256-cd574a057e4004aa8f7a45d07ecff018961877b457f904452e82cc11c3b452ed"
+    },
+    {
+        "name": "Chaturbate Guys Stremio",
+        "internalName": "ChaturbateMStremioProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateMStremioProvider_1.cs3",
+        "status": 3,
+        "version": 1,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Chaturbate Guys cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 25315,
+        "fileHash": "sha256-02387bf9ebd03887a41864b2665fe91454273575e48923407bf945d5c1bdc034"
+    },
+    {
+        "name": "Chaturbate Trans Stremio",
+        "internalName": "ChaturbateTStremioProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ChaturbateTStremioProvider_1.cs3",
+        "status": 3,
+        "version": 1,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Chaturbate Trans cams (Stremio bridge). Bridges the Chaturbate Stremio addon (chaturbate.stremio.homes) - Popular + region + Couples Live rows, genre rows, live search, full room metadata and direct LL-HLS stream links.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/chaturbate.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 25293,
+        "fileHash": "sha256-a165d84eae10999d793e63c3a379c9df39c1b143d446eefc9df293ec31ca9087"
+    },
+    {
+        "name": "Stripchat Girls Stremio",
+        "internalName": "StripchatGirlsStremioProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatGirlsStremioProvider_1.cs3",
+        "status": 3,
+        "version": 1,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Stripchat Girls cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/girls) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 21997,
+        "fileHash": "sha256-e48f285e8952e5ce183414289c81e53c102ed279ce106037d0d5b18facb653a9"
+    },
+    {
+        "name": "Stripchat Guys Stremio",
+        "internalName": "StripchatManStremioProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatManStremioProvider_1.cs3",
+        "status": 3,
+        "version": 1,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Stripchat Guys cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/men) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 21993,
+        "fileHash": "sha256-f89904c2ec52503797b571543b04854c3ea29c7e3a60cb8d616ff21341c67428"
+    },
+    {
+        "name": "Stripchat Trans Stremio",
+        "internalName": "StripchatTransStremioProvider",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatTransStremioProvider_1.cs3",
+        "status": 3,
+        "version": 1,
+        "apiVersion": 1,
+        "authors": [
+            "rhoulou"
+        ],
+        "description": "Live Stripchat Trans cams (Stremio bridge). Bridges the Stripchat Stremio addon (stripchat.stremio.homes/trans) - Popular + New & Trending + Couples Live + VR Cams rows, genre rows, live search, full room metadata and direct HLS links via the saawsedge master playlist.",
+        "language": "en",
+        "tvTypes": [
+            "Live",
+            "NSFW"
+        ],
+        "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
+        "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
+        "fileSize": 21978,
+        "fileHash": "sha256-3b7a01af6c10be9a137be9bf214a162d575bc8b7690478305ce403f9f1bd106b"
     }
 ]
