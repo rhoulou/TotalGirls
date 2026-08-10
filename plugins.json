@@ -125,9 +125,9 @@
   {
     "name": "BongaCams Girls",
     "internalName": "BongaCamsProvider",
-    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/BongaCamsProvider_13.cs3",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/BongaCamsProvider_14.cs3",
     "status": 3,
-    "version": 13,
+    "version": 14,
     "apiVersion": 1,
     "authors": [
       "rhoulou"
@@ -140,15 +140,15 @@
     ],
     "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/bongacams.png",
     "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-    "fileSize": 31229,
-    "fileHash": "sha256-725fed5a462661a9c91edc3b0a1353dbdbb769ebf6a0d40de4f779228395e08c"
+    "fileSize": 31235,
+    "fileHash": "sha256-395184a073c2b2c194483dfeedf2f95a5aa115236507a1e057dfdcd0ddd232df"
   },
   {
     "name": "Camsoda Girls",
     "internalName": "CamsodaProvider",
-    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsodaProvider_13.cs3",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/CamsodaProvider_14.cs3",
     "status": 3,
-    "version": 13,
+    "version": 14,
     "apiVersion": 1,
     "authors": [
       "rhoulou"
@@ -161,8 +161,8 @@
     ],
     "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/camsoda.png",
     "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-    "fileSize": 36797,
-    "fileHash": "sha256-44ef5ce995b1f25ad9920021a0df73bc37cda74bcff1424ab10d194fb8814cf4"
+    "fileSize": 36788,
+    "fileHash": "sha256-1c03b92418e51f146e2aa520a94426c1a3ce9c8467ce95556d48747d251404d6"
   },
   {
     "name": "Streamate Girls",

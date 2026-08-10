@@ -26,7 +26,7 @@ object Settings {
     private const val KEY_GENDERS = "bonga_genders"
     private const val KEY_ROWS = "bonga_rows"
 
-    const val DEFAULT_PROXY = "https://proxy.rhoulou.com:7676/proxy.php?url="
+    const val DEFAULT_PROXY = "https://bonga-xi.vercel.app/api/proxy?url="
     private val DEFAULT_GENDERS = setOf("female")
 
     /** Gender options shown in the dialog (code -> label). Couples = both couple genders. */

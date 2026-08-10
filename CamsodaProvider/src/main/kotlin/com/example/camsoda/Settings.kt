@@ -26,7 +26,7 @@ object Settings {
     private const val KEY_GENDERS = "camsoda_genders"
     private const val KEY_ROWS = "camsoda_rows"
 
-    const val DEFAULT_PROXY = "https://proxy.rhoulou.com:7676/proxy.php?url="
+    const val DEFAULT_PROXY = "https://bonga-xi.vercel.app/api/proxy?url="
     private val DEFAULT_GENDERS = setOf("f")
 
     /** Gender options shown in the dialog (code -> label). Codes are the tpl[8] values. */
