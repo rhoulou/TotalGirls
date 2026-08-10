@@ -440,9 +440,9 @@
   {
     "name": "ViralXXXPorn",
     "internalName": "ViralXxxProvider",
-    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ViralXxxProvider_2.cs3",
+    "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/ViralXxxProvider_3.cs3",
     "status": 3,
-    "version": 2,
+    "version": 3,
     "apiVersion": 1,
     "authors": [
       "rhoulou"
@@ -454,7 +454,7 @@
     ],
     "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/viralxxxporn.png",
     "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-    "fileSize": 29662,
-    "fileHash": "sha256-2b0d8ab4529d368ffe15712f439d5f978c6f5fd68e94ad787955d6bae3d79d78"
+    "fileSize": 33389,
+    "fileHash": "sha256-28c34c6b036b54d3c2f0b8a072c8d131b4e1091b00f2683d0a210ef136efe5e2"
   }
 ]

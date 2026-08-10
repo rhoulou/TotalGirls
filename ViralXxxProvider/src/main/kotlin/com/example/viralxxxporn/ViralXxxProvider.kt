@@ -193,7 +193,12 @@ class ViralXxxProvider : MainAPI() {
     private data class Card(val title: String, val thumb: String?, val url: String)
 
     private suspend fun scrapeVideoCards(url: String): List<Card> {
-        val html = fetchText(url) ?: return emptyList()
+        val outcome = fetchText(url)
+        val html = outcome.body
+        if (html == null) {
+            println("ViralXxx scrapeVideoCards: fetch FAILED $url -> ${outcome.describe()}")
+            return emptyList()
+        }
         val doc = Jsoup.parse(html, url)
         return doc.select("a.vx-media[href*='/video/']").mapNotNull { a ->
             val href = a.absUrl("href").trim()
@@ -209,11 +214,18 @@ class ViralXxxProvider : MainAPI() {
             val title = a.attr("title").trim()
                 .ifBlank { img?.attr("alt")?.trim().orEmpty() }
             if (title.isBlank()) null else Card(title, thumb, href)
-        }.distinctBy { it.url }
+        }.distinctBy { it.url }.also { cards ->
+            println("ViralXxx scrapeVideoCards: $url status=${outcome.statusCode} bytes=${outcome.bodyLength} cards=${cards.size}")
+        }
     }
 
     private suspend fun scrapeModels(url: String): List<Card> {
-        val html = fetchText(url) ?: return emptyList()
+        val outcome = fetchText(url)
+        val html = outcome.body
+        if (html == null) {
+            println("ViralXxx scrapeModels: fetch FAILED $url -> ${outcome.describe()}")
+            return emptyList()
+        }
         val doc = Jsoup.parse(html, url)
         return doc.select("a.vx-name[href*='/models/']").mapNotNull { a ->
             val href = a.absUrl("href").trim()
@@ -224,11 +236,18 @@ class ViralXxxProvider : MainAPI() {
             val thumb = gallery?.selectFirst("img[data-original]")?.attr("data-original")?.trim()
                 ?: gallery?.selectFirst("img.vx-img[data-webp]")?.attr("data-webp")?.trim()
             Card(title, thumb, href)
-        }.distinctBy { it.url }
+        }.distinctBy { it.url }.also { cards ->
+            println("ViralXxx scrapeModels: $url status=${outcome.statusCode} bytes=${outcome.bodyLength} models=${cards.size}")
+        }
     }
 
     private suspend fun scrapeCategories(url: String): List<Card> {
-        val html = fetchText(url) ?: return emptyList()
+        val outcome = fetchText(url)
+        val html = outcome.body
+        if (html == null) {
+            println("ViralXxx scrapeCategories: fetch FAILED $url -> ${outcome.describe()}")
+            return emptyList()
+        }
         val doc = Jsoup.parse(html, url)
         return doc.select("a.vx-name[href*='/categories/']").mapNotNull { a ->
             val href = a.absUrl("href").trim()
@@ -239,7 +258,9 @@ class ViralXxxProvider : MainAPI() {
             val thumb = gallery?.selectFirst("img[data-original]")?.attr("data-original")?.trim()
                 ?: gallery?.selectFirst("img.vx-img[data-webp]")?.attr("data-webp")?.trim()
             Card(title, thumb, href)
-        }.distinctBy { it.url }
+        }.distinctBy { it.url }.also { cards ->
+            println("ViralXxx scrapeCategories: $url status=${outcome.statusCode} bytes=${outcome.bodyLength} categories=${cards.size}")
+        }
     }
 
     private fun Card.toSearchResponse(): SearchResponse =
@@ -250,7 +271,12 @@ class ViralXxxProvider : MainAPI() {
     // ------------------------------------------------------- load
 
     private suspend fun loadModel(url: String): LoadResponse? {
-        val first = fetchText(url) ?: return null
+        val firstOutcome = fetchText(url)
+        val first = firstOutcome.body
+        if (first == null) {
+            println("ViralXxx loadModel: fetch FAILED $url -> ${firstOutcome.describe()}")
+            return null
+        }
         val doc = Jsoup.parse(first, url)
         val name = (doc.selectFirst("h1")?.text() ?: "")
             .let { Regex("#\\d+\\s*(.*)").find(it)?.groupValues?.get(1)?.trim() ?: it.trim() }
@@ -259,7 +285,12 @@ class ViralXxxProvider : MainAPI() {
         cards.addAll(parseVideoCards(first, url))
         var page = 2
         while (page <= MAX_MODEL_PAGES && cards.size < MAX_MODEL_EPISODES) {
-            val pageHtml = fetchText("$url$page/") ?: break
+            val pageOutcome = fetchText("$url$page/")
+            val pageHtml = pageOutcome.body
+            if (pageHtml == null) {
+                println("ViralXxx loadModel: page fetch FAILED $url$page/ -> ${pageOutcome.reason}; stopping pagination at page=$page cards=${cards.size}")
+                break
+            }
             val pageCards = parseVideoCards(pageHtml, "$url$page/")
             if (pageCards.isEmpty()) break
             val before = cards.size
@@ -286,14 +317,26 @@ class ViralXxxProvider : MainAPI() {
     }
 
     private suspend fun loadVideo(url: String): LoadResponse? {
-        val html = fetchText(url) ?: return null
+        val outcome = fetchText(url)
+        val html = outcome.body
+        if (html == null) {
+            println("ViralXxx loadVideo: FAILED $url -> ${outcome.describe()}")
+            return null
+        }
         val doc = Jsoup.parse(html, url)
         val title = doc.selectFirst("title")?.text()
             ?.substringBefore(" - ViralXXXPorn")?.trim(' ', '-')?.trim()
             ?.takeIf { it.isNotBlank() } ?: "Video"
         val sources = viralGetFileUrls(html)
+        println("ViralXxx loadVideo: OK $url status=${outcome.statusCode} bytes=${outcome.bodyLength} title=\"$title\" sources=${sources.size}")
         if (sources.isEmpty()) {
-            println("ViralXxx loadVideo: no get_file sources on $url")
+            val removed = outcome.statusCode == 410 || title.contains("Content Removed", true)
+            val reason = if (removed) {
+                "video removed from site (HTTP 410 / 'Content Removed' page)"
+            } else {
+                "no get_file sources parsed from HTML"
+            }
+            println("ViralXxx loadVideo: NO SOURCES $url -> $reason")
             return null
         }
         val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")?.trim()
@@ -308,7 +351,12 @@ class ViralXxxProvider : MainAPI() {
     }
 
     private suspend fun loadCategory(url: String): LoadResponse? {
-        val first = fetchText(url) ?: return null
+        val firstOutcome = fetchText(url)
+        val first = firstOutcome.body
+        if (first == null) {
+            println("ViralXxx loadCategory: fetch FAILED $url -> ${firstOutcome.describe()}")
+            return null
+        }
         val doc = Jsoup.parse(first, url)
         val name = doc.selectFirst("h1")?.text()?.trim()?.ifBlank { "Category" }
             ?: "Category"
@@ -316,7 +364,12 @@ class ViralXxxProvider : MainAPI() {
         cards.addAll(parseVideoCards(first, url))
         var page = 2
         while (page <= MAX_MODEL_PAGES && cards.size < MAX_MODEL_EPISODES) {
-            val pageHtml = fetchText("$url$page/") ?: break
+            val pageOutcome = fetchText("$url$page/")
+            val pageHtml = pageOutcome.body
+            if (pageHtml == null) {
+                println("ViralXxx loadCategory: page fetch FAILED $url$page/ -> ${pageOutcome.reason}; stopping pagination at page=$page cards=${cards.size}")
+                break
+            }
             val pageCards = parseVideoCards(pageHtml, "$url$page/")
             if (pageCards.isEmpty()) break
             val before = cards.size
@@ -389,10 +442,31 @@ class ViralXxxProvider : MainAPI() {
 
     // ------------------------------------------------------- network helpers
 
+    /** Full outcome of a fetch. `body` is non-null only on success; otherwise
+     *  `reason` describes exactly why it failed (HTTP status, block page,
+     *  network/SSL/timeout). Never silently hides a failure behind null. */
+    private data class FetchOutcome(
+        val url: String,
+        val statusCode: Int?,
+        val finalUrl: String?,
+        val contentType: String?,
+        val bodyLength: Int,
+        val body: String?,
+        val error: Throwable?,
+        val reason: String?
+    ) {
+        fun describe(): String =
+            "REQUEST=$url STATUS=${statusCode ?: "ERR"} FINAL=${finalUrl ?: "-"} TYPE=${contentType ?: "-"} " +
+                "BYTES=$bodyLength ERROR=${error?.let { "${it::class.simpleName}: ${it.message}" } ?: "null"} " +
+                "REASON=${reason ?: "ok"}"
+    }
+
     /** Logged fetch: status code, final URL after redirects, content-type and
-     *  body size. Retries once, skips anti-bot pages, never throws. */
-    private suspend fun fetchText(url: String): String? {
+     *  body size. Retries twice, skips anti-bot pages, never throws, and
+     *  reports the exact failure reason instead of a bare null. */
+    private suspend fun fetchText(url: String): FetchOutcome {
         val delays = listOf(600L, 1500L)
+        var lastError: Throwable? = null
         repeat(3) { attempt ->
             try {
                 val res = app.get(url, headers = headers())
@@ -400,30 +474,49 @@ class ViralXxxProvider : MainAPI() {
                 val finalUrl = res.okhttpResponse.request.url.toString()
                 val ctype = res.okhttpResponse.header("content-type") ?: ""
                 val body = res.text
-                println("ViralXxx GET $url -> HTTP $code final=$finalUrl type=$ctype ${body.length}B")
+                val outcome = FetchOutcome(
+                    url = url,
+                    statusCode = code,
+                    finalUrl = finalUrl,
+                    contentType = ctype,
+                    bodyLength = body.length,
+                    body = body,
+                    error = null,
+                    reason = null
+                )
+                println("ViralXxx fetch ${outcome.describe()}")
                 if (code !in 200..299) {
-                    println("ViralXxx: non-2xx response from $url")
-                    return null
+                    val reason = "HTTP $code"
+                    println("ViralXxx fetch: FAILED $url -> $reason bodyHead=\"${body.take(120).replace('\n', ' ')}\"")
+                    return outcome.copy(body = null, reason = reason)
                 }
-                if (isBlockPage(body)) {
-                    println("ViralXxx: anti-bot/Cloudflare page detected from $url")
-                    return null
+                val blockMarker = blockPageMarker(body)
+                if (blockMarker != null) {
+                    println("ViralXxx fetch: BLOCKED $url -> marker='$blockMarker' bodyHead=\"${body.take(120).replace('\n', ' ')}\"")
+                    return outcome.copy(body = null, reason = "block page ($blockMarker)")
                 }
-                return body
+                return outcome
             } catch (e: Exception) {
-                println("ViralXxx fetch attempt ${attempt + 1} failed for $url: $e")
+                lastError = e
+                println("ViralXxx fetch attempt ${attempt + 1} FAILED for $url: ${e::class.simpleName}: ${e.message}")
+                println("ViralXxx fetch stack ${attempt + 1}: ${e.stackTraceToString()}")
                 if (attempt < delays.size) delay(delays[attempt])
             }
         }
-        return null
+        val reason = "network failure after 3 attempts (${lastError?.let { it::class.simpleName ?: "Exception" } ?: "unknown"})"
+        println("ViralXxx fetch: FAILED $url -> $reason")
+        return FetchOutcome(url, null, null, null, 0, null, lastError, reason)
     }
 
-    private fun isBlockPage(body: String): Boolean =
-        body.length < 300 ||
-            body.contains("cf-browser-verification", true) ||
-            body.contains("Just a moment", true) ||
-            body.contains("_cf_chl_", true) ||
-            body.contains("Attention Required", true)
+    /** Returns the anti-bot/block marker matched in `body`, or null if clean. */
+    private fun blockPageMarker(body: String): String? = when {
+        body.length < 300 -> "body<300B"
+        body.contains("cf-browser-verification", true) -> "Cloudflare cf-browser-verification"
+        body.contains("Just a moment", true) -> "Cloudflare 'Just a moment'"
+        body.contains("_cf_chl_", true) -> "Cloudflare _cf_chl_"
+        body.contains("Attention Required", true) -> "Cloudflare 'Attention Required'"
+        else -> null
+    }
 
     private fun headers(): Map<String, String> = mapOf(
         "User-Agent" to BROWSER_UA,
