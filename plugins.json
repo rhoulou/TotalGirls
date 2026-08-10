@@ -377,9 +377,9 @@
     {
         "name": "Stripchat Girls Stremio",
         "internalName": "StripchatGirlsStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatGirlsStremioProvider_1.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatGirlsStremioProvider_2.cs3",
         "status": 3,
-        "version": 1,
+        "version": 2,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -393,14 +393,14 @@
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
         "fileSize": 22432,
-        "fileHash": "sha256-adfcc47f4fb8156bf2ab148c858391aac9dbf2473f980fcb950dbdf82c6a2f41"
+        "fileHash": "sha256-9dc2b102e8dcf39c5a17590f4ee5c2c6746edde4ff8dd5b8735c76bab975029a"
     },
     {
         "name": "Stripchat Guys Stremio",
         "internalName": "StripchatManStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatManStremioProvider_1.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatManStremioProvider_2.cs3",
         "status": 3,
-        "version": 1,
+        "version": 2,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -414,14 +414,14 @@
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
         "fileSize": 22429,
-        "fileHash": "sha256-68a57e4e815622a8745f7f1456a97af2f83ccc568cad9fc5a4c8792236d0c20e"
+        "fileHash": "sha256-5f393a7ab096b83b4607aa3adefa607d62992bacb0d455d821fbb7a05fb6fcf7"
     },
     {
         "name": "Stripchat Trans Stremio",
         "internalName": "StripchatTransStremioProvider",
-        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatTransStremioProvider_1.cs3",
+        "url": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/StripchatTransStremioProvider_2.cs3",
         "status": 3,
-        "version": 1,
+        "version": 2,
         "apiVersion": 1,
         "authors": [
             "rhoulou"
@@ -434,7 +434,7 @@
         ],
         "iconUrl": "https://raw.githubusercontent.com/rhoulou/TotalGirls/main/stripchat.png",
         "repositoryUrl": "https://github.com/rhoulou/TotalGirls",
-        "fileSize": 22405,
-        "fileHash": "sha256-eff6e76b2284cd3495ddd6bd6c33d8ca17a8c7dbd4cd30d26f19fc464fbc9894"
+        "fileSize": 22406,
+        "fileHash": "sha256-d44002eb3300ba4346b62234ffc51eb47fdbed8e8bbe334a2a19ce6116f348bc"
     }
 ]
